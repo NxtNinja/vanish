@@ -103,8 +103,7 @@ const Room = () => {
   useRealtime({
     channels: [roomId],
     events: ["chat.message", "chat.destroy"],
-    onData: ({ event, data }) => {
-      console.log("Received event:", event, data);
+    onData: ({ event }) => {
       if (event === "chat.message") {
         refetch();
       }
