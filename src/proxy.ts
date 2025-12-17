@@ -20,13 +20,19 @@ export const proxy = async (req: NextRequest) => {
 
   const existingToken = req.cookies.get("x-auth-token")?.value;
 
+  // Parse connected if it's a string (Redis hgetall returns strings for complex types)
+  const connectedUsers =
+    typeof meta.connected === "string"
+      ? JSON.parse(meta.connected)
+      : meta.connected;
+
   // USER IS ALLOWED TO JOIN ROOM
-  if (existingToken && meta.connected.includes(existingToken)) {
+  if (existingToken && connectedUsers.includes(existingToken)) {
     return NextResponse.next();
   }
 
   // USER IS NOT ALLOWED TO JOIN
-  if (meta.connected.length >= 2) {
+  if (Array.isArray(connectedUsers) && connectedUsers.length >= 2) {
     return NextResponse.redirect(new URL("/?error=room-full", req.url));
   }
 
