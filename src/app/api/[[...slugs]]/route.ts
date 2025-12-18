@@ -126,3 +126,5 @@ export const POST = app.fetch;
 export const DELETE = app.fetch;
 
 export type app = typeof app;
+
+export const runtime = "edge";
