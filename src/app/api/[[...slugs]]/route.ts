@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 import { authMiddleware } from "./auth";
 import z from "zod";
 import { message, realtime } from "@/lib/realtime";
+import { encrypt, decrypt } from "@/lib/encryption";
 
 
 const rooms = new Elysia({ prefix: "/room" })
@@ -81,10 +82,16 @@ const messages = new Elysia({ prefix: "/messages" })
         roomId,
       };
 
-      await redis.rpush(`messages:${roomId}`, {
+      // Encrypt message text before storing in Redis
+      const encryptedMessage = {
         ...message,
+        text: encrypt(text),
         token: auth.token,
-      });
+      };
+
+      await redis.rpush(`messages:${roomId}`, encryptedMessage);
+      
+      // Emit original unencrypted message to realtime (end-to-end in memory)
       await realtime.channel(roomId).emit("chat.message", message);
 
       const remainingTime = await redis.ttl(`meta:${roomId}`);
@@ -103,15 +110,17 @@ const messages = new Elysia({ prefix: "/messages" })
   .get(
     "/",
     async ({ auth }) => {
-      const messages = await redis.lrange<message>(
+      const encryptedMessages = await redis.lrange<message>(
         `messages:${auth.roomId}`,
         0,
         -1
       );
 
+      // Decrypt messages before sending to client
       return {
-        messages: messages.map((m) => ({
+        messages: encryptedMessages.map((m) => ({
           ...m,
+          text: decrypt(m.text),
           token: m.token === auth.token ? auth.token : undefined,
         })),
       };

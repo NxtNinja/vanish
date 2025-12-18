@@ -41,8 +41,8 @@ export async function proxy(req: NextRequest) {
   // Atomic check and add
   const tokenCount = await redis.scard(tokenKey);
 
-  // Increase limit to 4 to be more forgiving of ghost tokens/previews
-  if (tokenCount >= 4) {
+  // Enforce strict 2-user limit for private chat
+  if (tokenCount >= 2) {
     console.warn(`Room ${roomId} is full. Token count: ${tokenCount}`);
     return NextResponse.redirect(new URL("/lobby?error=room-full", req.url));
   }
@@ -59,6 +59,16 @@ export async function proxy(req: NextRequest) {
 
   // Atomic add to Set
   await redis.sadd(tokenKey, token);
+  
+  // Add token to connected array in meta hash
+  const currentMeta = await redis.hgetall<{ connected: string[]; createdAt: number }>(
+    `meta:${roomId}`
+  );
+  if (currentMeta) {
+    const updatedConnected = [...(currentMeta.connected || []), token];
+    await redis.hset(`meta:${roomId}`, { connected: updatedConnected });
+  }
+  
   // Ensure the token set expires with the room
   const ttl = await redis.ttl(`meta:${roomId}`);
   if (ttl > 0) {
