@@ -5,6 +5,7 @@ import { authMiddleware } from "./auth";
 import z from "zod";
 import { message, realtime } from "@/lib/realtime";
 import { encrypt, decrypt } from "@/lib/encryption";
+import { getClientIp, rateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 
 
 const rooms = new Elysia({ prefix: "/room" })
