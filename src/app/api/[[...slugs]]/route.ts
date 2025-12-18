@@ -32,12 +32,16 @@ const rooms = new Elysia({ prefix: "/room" })
   .delete(
     "/",
     async ({ auth }) => {
+      console.log("Destroying room:", auth.roomId);
       await realtime
         .channel(auth.roomId)
         .emit("chat.destroy", { isDestroyed: true });
+      console.log("Destroy event emitted for:", auth.roomId);
+
+      // Give some time for the event to propagate before deleting keys
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       await Promise.all([
-        redis.del(auth.roomId),
         redis.del(`meta:${auth.roomId}`),
         redis.del(`messages:${auth.roomId}`),
       ]);
@@ -53,9 +57,10 @@ const messages = new Elysia({ prefix: "/messages" })
       const { sender, text } = body;
       const { roomId } = auth;
 
-      const roomExists = redis.exists(`messages:${roomId}`);
+      const roomExists = await redis.exists(`meta:${roomId}`);
 
       if (!roomExists) {
+        console.error("Room does not exist:", roomId);
         throw new Error("Room does not exist");
       }
 

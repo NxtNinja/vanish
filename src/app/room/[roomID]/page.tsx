@@ -137,6 +137,12 @@ const Room = () => {
     mutationFn: async () => {
       await client.room.delete(null, { query: { roomId } });
     },
+    onSuccess: () => {
+      router.push("/?destroyed=true");
+    },
+    onError: (err) => {
+      console.error("Failed to destroy room:", err);
+    },
   });
 
   const { mutate: sendTyping } = useMutation({
@@ -167,6 +173,7 @@ const Room = () => {
     channels: [roomId],
     events: ["chat.message", "chat.destroy", "chat.typing"],
     onData: ({ event, data }) => {
+      console.log("Realtime event:", event, data);
       if (event === "chat.message") {
         refetch();
       }
