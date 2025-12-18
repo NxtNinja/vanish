@@ -11,22 +11,22 @@ const genertateUsername = () => {
 
 export const useUsername = () => {
   const [username, setUsername] = useState("");
+
+  const refreshUsername = () => {
+    const newUsername = genertateUsername();
+    localStorage.setItem(STORAGE_KEY, newUsername);
+    setUsername(newUsername);
+  };
+
   useEffect(() => {
-    const main = () => {
-      const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_KEY);
 
-      if (stored) {
-        setUsername(stored);
-        return;
-      }
-
-      const newUsername = genertateUsername();
-      localStorage.setItem(STORAGE_KEY, newUsername);
-      setUsername(newUsername);
-    };
-
-    main();
+    if (stored) {
+      setUsername(stored);
+    } else {
+      refreshUsername();
+    }
   }, []);
 
-  return { username };
+  return { username, refreshUsername };
 };

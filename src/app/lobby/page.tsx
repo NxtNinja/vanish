@@ -3,8 +3,8 @@ import { useUsername } from "@/hooks/use-username";
 import { client } from "@/lib/client";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
-import { Loader2 } from "lucide-react";
+import { Suspense, useState } from "react";
+import { Loader2, RefreshCw } from "lucide-react";
 
 const LobbyPage = () => {
   return (
@@ -17,8 +17,9 @@ const LobbyPage = () => {
 export default LobbyPage;
 
 function Lobby() {
-  const { username } = useUsername();
+  const { username, refreshUsername } = useUsername();
   const router = useRouter();
+  const [ttl, setTtl] = useState(10);
 
   const searchParams = useSearchParams();
   const wasDestroyed = searchParams.get("destroyed") === "true";
@@ -26,7 +27,7 @@ function Lobby() {
 
   const { mutate: createRoom, isPending } = useMutation({
     mutationFn: async () => {
-      const res = await client.room.create.post();
+      const res = await client.room.create.post({ ttl });
 
       if (res.status === 200) {
         router.push(`/room/${res.data?.roomId}`);
@@ -75,21 +76,52 @@ function Lobby() {
           </div>
         </div>
         <div className="border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-md">
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div className="space-y-2">
-              <label className="flex items-center text-zinc-500">
+              <label className="flex items-center text-zinc-500 text-xs uppercase tracking-wider font-bold">
                 Your Identity
               </label>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 bg-zinc-950 border border-y-zinc-800 p-3 text-sm text-zinc-400 font-mono">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-zinc-950 border border-zinc-800 p-3 text-sm text-zinc-400 font-mono">
                   {username}
                 </div>
+                <button
+                  onClick={() => refreshUsername()}
+                  className="p-3 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white"
+                  title="Refresh Identity"
+                >
+                  <RefreshCw size={18} />
+                </button>
               </div>
             </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <label className="text-zinc-500 text-xs uppercase tracking-wider font-bold">
+                  Room Lifespan
+                </label>
+                <span className="text-green-500 font-mono text-sm font-bold">
+                  {ttl} MINS
+                </span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="20"
+                value={ttl}
+                onChange={(e) => setTtl(parseInt(e.target.value))}
+                className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+              />
+              <div className="flex justify-between text-[10px] text-zinc-600 font-mono">
+                <span>1 MIN</span>
+                <span>20 MINS</span>
+              </div>
+            </div>
+
             <button
               onClick={() => createRoom()}
               disabled={isPending}
-              className="w-full bg-zinc-100 text-black p-3 text-sm font-bold hover:bg-zinc-50 hover:text-black transition-colors mt-2 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-zinc-100 text-black p-4 text-sm font-bold hover:bg-white transition-all mt-2 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
             >
               {isPending ? (
                 <>
