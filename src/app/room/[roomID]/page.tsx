@@ -29,6 +29,7 @@ const Room = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isDestroying, setIsDestroying] = useState(false);
 
   const formatTimeRemaining = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -134,6 +135,9 @@ const Room = () => {
   });
 
   const { mutate: destroyRoom } = useMutation({
+    onMutate: () => {
+      setIsDestroying(true);
+    },
     mutationFn: async () => {
       await client.room.delete(null, { query: { roomId } });
     },
@@ -141,6 +145,7 @@ const Room = () => {
       router.push("/?destroyed=true");
     },
     onError: (err) => {
+      setIsDestroying(false);
       console.error("Failed to destroy room:", err);
     },
   });
@@ -179,7 +184,10 @@ const Room = () => {
       }
 
       if (event === "chat.destroy") {
-        router.push("/?destroyed=true");
+        setIsDestroying(true);
+        setTimeout(() => {
+          router.push("/?destroyed=true");
+        }, 1000);
       }
 
       if (event === "chat.typing") {
@@ -197,7 +205,27 @@ const Room = () => {
   });
   return (
     <>
-      <main className="flex flex-col h-screen max-h-screen overflow-hidden">
+      {isDestroying && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md transition-all duration-500">
+          <div className="flex flex-col items-center gap-4 p-8 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="relative">
+              <Loader2 className="w-12 h-12 text-red-500 animate-spin" />
+              <span className="absolute inset-0 flex items-center justify-center text-xl">
+                💣
+              </span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <h2 className="text-xl font-bold text-white tracking-tight">
+                DESTROYING ROOM
+              </h2>
+              <p className="text-zinc-500 text-sm font-mono">
+                Wiping all traces from existence...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      <main className={`flex flex-col h-screen max-h-screen overflow-hidden transition-all duration-700 ${isDestroying ? 'blur-sm scale-[0.98]' : ''}`}>
         <header className="border-b border-zinc-800 p-4 flex items-center justify-between bg-zinc-900/30">
           <div className="flex items-center gap-4">
             <div className="flex flex-col">
