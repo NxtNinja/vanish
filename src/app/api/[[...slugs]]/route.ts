@@ -103,6 +103,21 @@ const messages = new Elysia({ prefix: "/messages" })
       };
     },
     { query: z.object({ roomId: z.string() }) }
+  )
+  .post(
+    "/typing",
+    async ({ auth, body }) => {
+      const { sender, isTyping } = body;
+      const { roomId } = auth;
+      await realtime.channel(roomId).emit("chat.typing", { sender, isTyping });
+    },
+    {
+      query: z.object({ roomId: z.string() }),
+      body: z.object({
+        sender: z.string(),
+        isTyping: z.boolean(),
+      }),
+    }
   );
 const app = new Elysia({ prefix: "/api" }).use(rooms).use(messages);
 

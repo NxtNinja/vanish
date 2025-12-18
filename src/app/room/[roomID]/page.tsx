@@ -21,6 +21,8 @@ const Room = () => {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const formatTimeRemaining = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -100,16 +102,52 @@ const Room = () => {
     },
   });
 
+  const { mutate: sendTyping } = useMutation({
+    mutationFn: async (isTyping: boolean) => {
+      await client.messages.typing.post(
+        { sender: username, isTyping },
+        { query: { roomId } }
+      );
+    },
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    } else {
+      sendTyping(true);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTyping(false);
+      typingTimeoutRef.current = null;
+    }, 2000);
+  };
+
   useRealtime({
     channels: [roomId],
-    events: ["chat.message", "chat.destroy"],
-    onData: ({ event }) => {
+    events: ["chat.message", "chat.destroy", "chat.typing"],
+    onData: ({ event, data }) => {
       if (event === "chat.message") {
         refetch();
       }
 
       if (event === "chat.destroy") {
         router.push("/?destroyed=true");
+      }
+
+      if (event === "chat.typing") {
+        setTypingUsers((prev) => {
+          const newSet = new Set(prev);
+          if (data.isTyping) {
+            newSet.add(data.sender);
+          } else {
+            newSet.delete(data.sender);
+          }
+          return newSet;
+        });
       }
     },
   });
@@ -195,6 +233,21 @@ const Room = () => {
           ))}
         </div>
 
+        {/* Typing Indicator */}
+        {typingUsers.size > 0 && (
+          <div className="px-4 py-2 text-xs text-zinc-500 italic animate-pulse">
+            {Array.from(typingUsers)
+              .filter((user) => user !== username)
+              .join(", ")}{" "}
+            {typingUsers.size === 1 && !typingUsers.has(username)
+              ? "is typing..."
+              : typingUsers.size > 1 ||
+                (typingUsers.size === 1 && typingUsers.has(username))
+              ? "are typing..."
+              : ""}
+          </div>
+        )}
+
         <div className="p-4 border-t border-zinc-800 bg-zinc-900/30">
           <div className="flex gap-4">
             <div className="flex-1 relative group">
@@ -213,7 +266,7 @@ const Room = () => {
                   }
                 }}
                 placeholder="Type a Message..."
-                onChange={(e) => setInput(e.target.value)}
+                onChange={handleInputChange}
                 className="w-full bg-black border border-zinc-800 focus:border-zinc-700 focus:outline-none transition-colors text-zinc-100 placeholder:text-zinc-700 py-3 pl-8 pr-4 text-sm"
               />
             </div>
