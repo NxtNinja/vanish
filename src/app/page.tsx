@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { Loader2 } from "lucide-react";
 
 const Page = () => {
   return (
@@ -25,7 +26,7 @@ function Lobby() {
   const wasDestroyed = searchParams.get("destroyed") === "true";
   const error = searchParams.get("error");
 
-  const { mutate: createRoom } = useMutation({
+  const { mutate: createRoom, isPending } = useMutation({
     mutationFn: async () => {
       const res = await client.room.create.post();
 
@@ -89,9 +90,17 @@ function Lobby() {
             </div>
             <button
               onClick={() => createRoom()}
-              className="w-full bg-zinc-100 text-black p-3 text-sm font-bold hover:bg-zinc-50 hover:text-black transition-colors mt-2 cursor-pointer disabled:opacity-50"
+              disabled={isPending}
+              className="w-full bg-zinc-100 text-black p-3 text-sm font-bold hover:bg-zinc-50 hover:text-black transition-colors mt-2 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              CREATE SECURE ROOM
+              {isPending ? (
+                <>
+                  <Loader2 className="animate-spin" size={16} />
+                  CREATING...
+                </>
+              ) : (
+                "CREATE SECURE ROOM"
+              )}
             </button>
           </div>
         </div>
