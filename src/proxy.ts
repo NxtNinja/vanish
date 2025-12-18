@@ -48,7 +48,7 @@ export const proxy = async (req: NextRequest) => {
   });
 
   await redis.hset(`meta:${roomId}`, {
-    connected: [...meta.connected, token],
+    connected: [...connectedUsers, token],
   });
 
   return response;
