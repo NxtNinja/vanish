@@ -13,12 +13,23 @@ export const metadata: Metadata = {
   title: "Vanish | Secure Ephemeral Chat",
   description:
     "Create private, self-destructing chat rooms instantly. No logs, no history, just vanish.",
+  icons: {
+    icon: "/favicon.ico",
+  },
   openGraph: {
     title: "Vanish | Secure Ephemeral Chat",
     description:
       "Create private, self-destructing chat rooms instantly. No logs, no history, just vanish.",
     url: "https://justvanish.in",
     siteName: "Vanish",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Vanish - Secure Ephemeral Chat",
+      },
+    ],
     locale: "en_US",
     type: "website",
   },
@@ -27,6 +38,7 @@ export const metadata: Metadata = {
     title: "Vanish | Secure Ephemeral Chat",
     description:
       "Create private, self-destructing chat rooms instantly. No logs, no history, just vanish.",
+    images: ["/og-image.png"],
   },
 };
 
