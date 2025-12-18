@@ -7,7 +7,7 @@ import { message, realtime } from "@/lib/realtime";
 
 const ROOM_TTL_SECONDS = 60 * 10;
 
-const rooms = new Elysia({ prefix: "/room" })
+const rooms = new Elysia({ prefix: "/room", aot: false })
   .post("/create", async () => {
     const roomId = nanoid();
 
@@ -45,7 +45,7 @@ const rooms = new Elysia({ prefix: "/room" })
     { query: z.object({ roomId: z.string() }) }
   );
 
-const messages = new Elysia({ prefix: "/messages" })
+const messages = new Elysia({ prefix: "/messages", aot: false })
   .use(authMiddleware)
   .post(
     "/",
@@ -119,7 +119,7 @@ const messages = new Elysia({ prefix: "/messages" })
       }),
     }
   );
-const app = new Elysia({ prefix: "/api" }).use(rooms).use(messages);
+const app = new Elysia({ prefix: "/api", aot: false }).use(rooms).use(messages);
 
 export const GET = app.fetch;
 export const POST = app.fetch;
