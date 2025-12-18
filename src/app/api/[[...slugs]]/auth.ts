@@ -8,7 +8,7 @@ class AuthError extends Error {
   }
 }
 
-export const authMiddleware = new Elysia({ name: "auth", aot: false })
+export const authMiddleware = new Elysia({ name: "auth" })
   .error({ AuthError })
   .onError(({ code, set }) => {
     if (code === "AuthError") {
