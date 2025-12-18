@@ -5,8 +5,17 @@ import { nanoid } from "nanoid";
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
+  // Ignore static assets and internal Next.js requests
+  if (
+    pathname.includes(".") ||
+    pathname.startsWith("/_next") ||
+    pathname === "/favicon.ico"
+  ) {
+    return NextResponse.next();
+  }
+
   const roomMatch = pathname.match(/^\/room\/([^/]+)$/);
-  if (!roomMatch) return NextResponse.redirect(new URL("/", req.url));
+  if (!roomMatch) return NextResponse.next();
 
   const roomId = roomMatch[1];
 
@@ -19,33 +28,26 @@ export async function proxy(req: NextRequest) {
   }
 
   const existingToken = req.cookies.get("x-auth-token")?.value;
+  const tokenKey = `room:${roomId}:tokens`;
 
-  // Parse connected if it's a string (Redis hgetall returns strings for complex types)
-  const rawConnected = meta.connected;
-  const connectedUsers: string[] = Array.isArray(rawConnected)
-    ? rawConnected
-    : typeof rawConnected === "string"
-    ? JSON.parse(rawConnected)
-    : [];
-
-  console.log(`Room ${roomId} status:`, {
-    connectedCount: connectedUsers.length,
-    hasToken: !!existingToken,
-  });
-
-  // USER IS ALLOWED TO JOIN ROOM
-  if (existingToken && connectedUsers.includes(existingToken)) {
-    return NextResponse.next();
+  // Check if existing token is valid using Set
+  if (existingToken) {
+    const isValid = await redis.sismember(tokenKey, existingToken);
+    if (isValid) {
+      return NextResponse.next();
+    }
   }
 
-  // USER IS NOT ALLOWED TO JOIN
-  if (connectedUsers.length >= 2) {
-    console.warn(`Room ${roomId} is full. Tokens:`, connectedUsers);
+  // Atomic check and add
+  const tokenCount = await redis.scard(tokenKey);
+
+  // Increase limit to 4 to be more forgiving of ghost tokens/previews
+  if (tokenCount >= 4) {
+    console.warn(`Room ${roomId} is full. Token count: ${tokenCount}`);
     return NextResponse.redirect(new URL("/?error=room-full", req.url));
   }
 
   const response = NextResponse.next();
-
   const token = nanoid();
 
   response.cookies.set("x-auth-token", token, {
@@ -55,13 +57,19 @@ export async function proxy(req: NextRequest) {
     sameSite: "lax",
   });
 
-  await redis.hset(`meta:${roomId}`, {
-    connected: [...connectedUsers, token],
-  });
+  // Atomic add to Set
+  await redis.sadd(tokenKey, token);
+  // Ensure the token set expires with the room
+  const ttl = await redis.ttl(`meta:${roomId}`);
+  if (ttl > 0) {
+    await redis.expire(tokenKey, ttl);
+  }
+
+  console.log(`New token generated for room ${roomId}. Total: ${tokenCount + 1}`);
 
   return response;
 }
 
 export const config = {
-  matcher: "/room/:path*",
+  matcher: ["/room/:path*", "/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

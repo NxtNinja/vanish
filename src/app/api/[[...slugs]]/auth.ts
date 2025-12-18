@@ -24,11 +24,11 @@ export const authMiddleware = new Elysia({ name: "auth" })
       throw new AuthError("Missing roomId or token.");
     }
 
-    const connected = await redis.hget<string[]>(`meta:${roomId}`, "connected");
+    const isValid = await redis.sismember(`room:${roomId}:tokens`, token);
 
-    if (!connected?.includes(token)) {
+    if (!isValid) {
       throw new AuthError("Invalid token");
     }
 
-    return { auth: { roomId, token, connected } };
+    return { auth: { roomId, token } };
   });

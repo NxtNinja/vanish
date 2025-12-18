@@ -44,6 +44,7 @@ const rooms = new Elysia({ prefix: "/room" })
       await Promise.all([
         redis.del(`meta:${auth.roomId}`),
         redis.del(`messages:${auth.roomId}`),
+        redis.del(`room:${auth.roomId}:tokens`),
       ]);
     },
     { query: z.object({ roomId: z.string() }) }
