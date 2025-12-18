@@ -50,11 +50,16 @@ const rooms = new Elysia({ prefix: "/room" })
       // Give some time for the event to propagate before deleting keys
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
+      // Delete ALL room-related keys
       await Promise.all([
         redis.del(`meta:${auth.roomId}`),
         redis.del(`messages:${auth.roomId}`),
         redis.del(`room:${auth.roomId}:tokens`),
+        redis.del(`history:${auth.roomId}`),
+        redis.del(auth.roomId), // Upstash Realtime stream key
       ]);
+      
+      console.log(`All keys deleted for room: ${auth.roomId}`);
     },
     { query: z.object({ roomId: z.string() }) }
   );
