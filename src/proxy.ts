@@ -21,10 +21,17 @@ export async function proxy(req: NextRequest) {
   const existingToken = req.cookies.get("x-auth-token")?.value;
 
   // Parse connected if it's a string (Redis hgetall returns strings for complex types)
-  const connectedUsers =
-    typeof meta.connected === "string"
-      ? JSON.parse(meta.connected)
-      : meta.connected;
+  const rawConnected = meta.connected;
+  const connectedUsers: string[] = Array.isArray(rawConnected)
+    ? rawConnected
+    : typeof rawConnected === "string"
+    ? JSON.parse(rawConnected)
+    : [];
+
+  console.log(`Room ${roomId} status:`, {
+    connectedCount: connectedUsers.length,
+    hasToken: !!existingToken,
+  });
 
   // USER IS ALLOWED TO JOIN ROOM
   if (existingToken && connectedUsers.includes(existingToken)) {
@@ -32,7 +39,8 @@ export async function proxy(req: NextRequest) {
   }
 
   // USER IS NOT ALLOWED TO JOIN
-  if (Array.isArray(connectedUsers) && connectedUsers.length >= 2) {
+  if (connectedUsers.length >= 2) {
+    console.warn(`Room ${roomId} is full. Tokens:`, connectedUsers);
     return NextResponse.redirect(new URL("/?error=room-full", req.url));
   }
 
@@ -44,7 +52,7 @@ export async function proxy(req: NextRequest) {
     path: "/",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
   });
 
   await redis.hset(`meta:${roomId}`, {
