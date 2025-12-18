@@ -150,8 +150,32 @@ const messages = new Elysia({ prefix: "/messages" })
   );
 const app = new Elysia({ prefix: "/api" }).use(rooms).use(messages);
 
-export const GET = app.fetch;
-export const POST = app.fetch;
-export const DELETE = app.fetch;
+// Rate limiting wrapper
+async function withRateLimit(request: Request, handler: (request: Request) => Promise<Response>) {
+  const clientIp = getClientIp(request);
+  const rateLimitResult = await rateLimit(clientIp);
+
+  if (!rateLimitResult.allowed) {
+    console.warn(`Rate limit exceeded for IP: ${clientIp} - Blocked for ${rateLimitResult.retryAfter}s`);
+    return createRateLimitResponse(
+      rateLimitResult.remaining,
+      rateLimitResult.resetAt,
+      rateLimitResult.retryAfter
+    );
+  }
+
+  const response = await handler(request);
+  
+  // Add rate limit headers
+  response.headers.set("X-RateLimit-Limit", "10");
+  response.headers.set("X-RateLimit-Remaining", rateLimitResult.remaining.toString());
+  response.headers.set("X-RateLimit-Reset", new Date(rateLimitResult.resetAt).toISOString());
+  
+  return response;
+}
+
+export const GET = (request: Request) => withRateLimit(request, app.fetch);
+export const POST = (request: Request) => withRateLimit(request, app.fetch);
+export const DELETE = (request: Request) => withRateLimit(request, app.fetch);
 
 export type app = typeof app;
