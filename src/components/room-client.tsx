@@ -5,7 +5,7 @@ import { client } from "@/lib/client";
 import { useRealtime } from "@/lib/realtime-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Copy, CopyCheck, Loader2 } from "lucide-react";
+import { Copy, CopyCheck, Loader2, SendHorizonal } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { message } from "@/lib/realtime";
@@ -273,57 +273,74 @@ export function RoomClient() {
         className={`flex flex-col overflow-hidden transition-all duration-700 ${isDestroying ? 'blur-sm scale-[0.98]' : ''}`}
         style={{ height: '100dvh' }}
       >
-        <header className="border-b border-zinc-800 p-3 md:p-4 flex items-center justify-between bg-zinc-900/30">
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="flex flex-col">
-              <span className="text-[10px] md:text-xs text-zinc-500 uppercase whitespace-nowrap">
-                Room ID
-              </span>
-              <div className="flex items-center gap-1 md:gap-2">
-                <span className="font-bold text-green-500 text-sm md:text-base">{roomId}</span>
+        {/* Square Modern Header */}
+        <header className="border-b-2 border-green-500/20 bg-black">
+          <div className="grid grid-cols-[1fr_auto] md:grid-cols-3 gap-4 p-4 md:p-5">
+            {/* Room Info */}
+            <div className="flex flex-col gap-1">
+              <div className="text-[10px] text-green-500 font-bold tracking-widest uppercase">ROOM</div>
+              <div className="flex items-center gap-2">
+                <span className="text-white font-mono text-sm md:text-base font-bold">{roomId}</span>
                 <button
                   onClick={() => copyLink()}
-                  className="text-[10px] bg-zinc-800 hover:bg-zinc-700 p-1 rounded text-zinc-400 hover:text-zinc-200 transition-colors"
+                  className="bg-zinc-900 hover:bg-zinc-800 p-1.5 text-zinc-400 hover:text-white transition-colors border border-zinc-800"
+                  aria-label="Copy link"
                 >
                   {copyState === "Copy" ? (
-                    <Copy size={14} className="md:w-[18px] md:h-[18px]" />
+                    <Copy size={14} />
                   ) : (
-                    <CopyCheck size={14} className="md:w-[18px] md:h-[18px]" />
+                    <CopyCheck size={14} className="text-green-500" />
                   )}
                 </button>
               </div>
             </div>
-            <div className="h-8 w-px bg-zinc-800" />
-            <div className="flex flex-col">
-              <span className="text-[10px] md:text-xs text-zinc-500 uppercase whitespace-nowrap">
-                Self Destruct
-              </span>
-              <span
-                className={`text-sm font-bold flex items-center gap-2 ${
-                  timeRemaining !== null && timeRemaining < 60
-                    ? "text-red-500"
-                    : "text-amber-500"
-                }`}
+
+            {/* Timer - Hidden on mobile, centered on desktop */}
+            <div className="hidden md:flex flex-col gap-1 items-center justify-center">
+              <div className="text-[10px] text-amber-500 font-bold tracking-widest uppercase">TIMER</div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`font-mono text-lg font-bold tabular-nums ${
+                    timeRemaining !== null && timeRemaining < 60
+                      ? "text-red-500"
+                      : "text-amber-400"
+                  }`}
+                >
+                  {timeRemaining !== null ? formatTimeRemaining(timeRemaining) : "--:--"}
+                </span>
+              </div>
+            </div>
+
+            {/* Destroy Button */}
+            <div className="flex items-center justify-end">
+              <button
+                onClick={() => destroyRoom()}
+                className="bg-zinc-900 hover:bg-red-600 border-2 border-zinc-800 hover:border-red-500 px-4 py-2 text-zinc-400 hover:text-white font-bold text-xs md:text-sm tracking-wider uppercase transition-all group flex items-center gap-2 disabled:opacity-50"
               >
-                {timeRemaining !== null
-                  ? formatTimeRemaining(timeRemaining)
-                  : "--:--"}
-              </span>
+                <span className="group-hover:animate-pulse">💣</span>
+                <span className="hidden sm:inline">DESTROY</span>
+              </button>
             </div>
           </div>
-          <button
-            onClick={() => destroyRoom()}
-            className="text-[10px] md:text-xs bg-zinc-800 hover:bg-red-600 px-2 py-1 md:px-3 md:py-1.5 rounded text-zinc-400 hover:text-white font-bold transition-all group flex items-center gap-1 md:gap-2 disabled:opacity-50 shrink-0"
-          >
-            <span className="group-hover:animate-pulse">💣</span>
-            <span className="hidden md:inline">DESTROY NOW</span>
-            <span className="md:hidden">DESTROY</span>
-          </button>
+          
+          {/* Mobile Timer Row */}
+          <div className="md:hidden border-t border-zinc-800 px-4 py-2 flex items-center justify-between bg-zinc-950">
+            <div className="text-[10px] text-amber-500 font-bold tracking-widest uppercase">TIMER</div>
+            <span
+              className={`font-mono text-sm font-bold tabular-nums ${
+                timeRemaining !== null && timeRemaining < 60
+                  ? "text-red-500"
+                  : "text-amber-400"
+              }`}
+            >
+              {timeRemaining !== null ? formatTimeRemaining(timeRemaining) : "--:--"}
+            </span>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
           {messages?.messages.length === 0 && (
-            <div className="flex justify-center items-center h-full">
+            <div className="flex justify-center items-center h-[60dvh]">
               <p className="text-zinc-600 text-sm font-mono">
                 No messages yet, start the conversation
               </p>
@@ -331,11 +348,12 @@ export function RoomClient() {
           )}
 
           {messages?.messages.map((msg) => (
-            <div className="flex flex-col items-start" key={msg.id}>
-              <div className="max-w-[80%] group">
-                <div className="flex items-baseline gap-3 mb-1">
+            <div className="flex flex-col items-start group" key={msg.id}>
+              <div className="w-full max-w-[85%] md:max-w-[70%]">
+                {/* Message Header */}
+                <div className="flex items-baseline gap-3 mb-2 px-3">
                   <span
-                    className={`text-xs font-bold ${
+                    className={`text-xs font-bold uppercase tracking-wide ${
                       msg.sender === username
                         ? "text-green-500"
                         : "text-blue-500"
@@ -343,19 +361,27 @@ export function RoomClient() {
                   >
                     {msg.sender === username ? "You" : msg.sender}
                   </span>
-                  <span className="text-[10px] text-zinc-600">
+                  <span className="text-[10px] text-zinc-600 font-mono">
                     {format(msg.timestamp, "HH:mm")}
                   </span>
                   {msg.isSending && (
-                    <span className="text-[10px] text-zinc-500 flex items-center gap-1 animate-pulse">
+                    <span className="text-[10px] text-zinc-500 flex items-center gap-1">
                       <Loader2 size={10} className="animate-spin" />
-                      sending...
+                      <span>sending...</span>
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-zinc-300 leading-relaxed break-all">
-                  {msg.text}
-                </p>
+                
+                {/* Message Content with Left Border Accent */}
+                <div className={`border-l-4 pl-3 py-1 ${
+                  msg.sender === username
+                    ? "border-green-500"
+                    : "border-blue-500"
+                }`}>
+                  <p className="text-sm text-zinc-300 leading-relaxed">
+                    {msg.text}
+                  </p>
+                </div>
               </div>
             </div>
           ))}
@@ -364,16 +390,33 @@ export function RoomClient() {
 
         {/* Typing Indicator */}
         {typingUsers.size > 0 && (
-          <div className="px-4 py-2 text-xs text-zinc-500 italic animate-pulse">
-            {Array.from(typingUsers)
-              .filter((user) => user !== username)
-              .join(", ")}{" "}
-            {typingUsers.size === 1 && !typingUsers.has(username)
-              ? "is typing..."
-              : typingUsers.size > 1 ||
-                (typingUsers.size === 1 && typingUsers.has(username))
-              ? "are typing..."
-              : ""}
+          <div className="px-4 py-3 border-t border-zinc-800/50">
+            <div className="flex items-center gap-3 max-w-[85%] md:max-w-[70%]">
+              {/* Animated Dots */}
+              <div className="flex gap-1 items-center">
+                <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
+                <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '1s' }} />
+                <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '400ms', animationDuration: '1s' }} />
+              </div>
+              
+              {/* Typing Text */}
+              <div className="text-xs text-zinc-400 font-medium">
+                <span className="text-blue-400 font-bold">
+                  {Array.from(typingUsers)
+                    .filter((user) => user !== username)
+                    .join(", ")}
+                </span>
+                {" "}
+                <span className="text-zinc-500">
+                  {typingUsers.size === 1 && !typingUsers.has(username)
+                    ? "is typing"
+                    : typingUsers.size > 1 ||
+                      (typingUsers.size === 1 && typingUsers.has(username))
+                    ? "you are typing"
+                    : ""}
+                </span>
+              </div>
+            </div>
           </div>
         )}
 
@@ -409,7 +452,7 @@ export function RoomClient() {
               disabled={!input.trim() || isPending}
               className="bg-zinc-800 text-zinc-400 px-6 text-sm font-bold hover:text-zinc-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              SEND
+              <SendHorizonal/>
             </button>
           </div>
         </div>
