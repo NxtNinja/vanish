@@ -27,6 +27,27 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/lobby?error=room-not-found", req.url));
   }
 
+  // Detect and ignore bot/preview requests (WhatsApp, Telegram, Twitter, etc.)
+  const userAgent = req.headers.get("user-agent")?.toLowerCase() || "";
+  const isBot =
+    userAgent.includes("whatsapp") ||
+    userAgent.includes("telegrambot") ||
+    userAgent.includes("twitterbot") ||
+    userAgent.includes("facebookexternalhit") ||
+    userAgent.includes("linkedinbot") ||
+    userAgent.includes("slackbot") ||
+    userAgent.includes("discordbot") ||
+    userAgent.includes("bot") ||
+    userAgent.includes("preview") ||
+    userAgent.includes("crawler") ||
+    userAgent.includes("spider");
+
+  // Allow bots to view the page but don't create tokens for them
+  if (isBot) {
+    console.log(`Bot detected (${userAgent.substring(0, 50)}), skipping token creation`);
+    return NextResponse.next();
+  }
+
   const existingToken = req.cookies.get("x-auth-token")?.value;
   const tokenKey = `room:${roomId}:tokens`;
 
