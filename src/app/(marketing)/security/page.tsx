@@ -1,6 +1,11 @@
-"use client";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ShieldCheck, EyeOff, Lock, ServerOff } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Security | Vanish",
+  description: "Our commitment to zero-log privacy and anonymous communication.",
+};
 
 export default function SecurityPage() {
   return (

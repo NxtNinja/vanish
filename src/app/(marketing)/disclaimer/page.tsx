@@ -1,6 +1,11 @@
-"use client";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle, Scale, ShieldAlert, HeartHandshake } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Disclaimer | Vanish",
+  description: "Ethical use policy and non-responsibility statement.",
+};
 
 export default function DisclaimerPage() {
   return (

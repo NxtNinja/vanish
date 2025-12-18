@@ -1,6 +1,11 @@
-"use client";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Cpu, Globe, Zap, Database } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Protocol | Vanish",
+  description: "Technical specifications of our ephemeral architecture.",
+};
 
 export default function ProtocolPage() {
   return (
