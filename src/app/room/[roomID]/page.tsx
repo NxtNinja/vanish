@@ -30,6 +30,39 @@ const Room = () => {
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isDestroying, setIsDestroying] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  };
+
+  useEffect(() => {
+    const handleVisualViewportResize = () => {
+      if (window.visualViewport && mainRef.current) {
+        mainRef.current.style.height = `${window.visualViewport.height}px`;
+        scrollToBottom();
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleVisualViewportResize);
+      window.visualViewport.addEventListener("scroll", handleVisualViewportResize);
+      // Initial call
+      handleVisualViewportResize();
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleVisualViewportResize);
+        window.visualViewport.removeEventListener("scroll", handleVisualViewportResize);
+      }
+    };
+  }, []);
+
+
 
   const formatTimeRemaining = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -57,7 +90,10 @@ const Room = () => {
     }
 
     if (timeRemaining === 0) {
-      router.push("/?destroyed=true");
+      setIsDestroying(true);
+      setTimeout(() => {
+        router.push("/lobby?destroyed=true");
+      }, 1000);
       return;
     }
 
@@ -82,6 +118,10 @@ const Room = () => {
       return res.data as { messages: DisplayMessage[] };
     },
   });
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const copyLink = () => {
     const url = window.location.href;
@@ -225,28 +265,34 @@ const Room = () => {
           </div>
         </div>
       )}
-      <main className={`flex flex-col h-screen max-h-screen overflow-hidden transition-all duration-700 ${isDestroying ? 'blur-sm scale-[0.98]' : ''}`}>
-        <header className="border-b border-zinc-800 p-4 flex items-center justify-between bg-zinc-900/30">
-          <div className="flex items-center gap-4">
+      <main 
+        ref={mainRef}
+        className={`flex flex-col overflow-hidden transition-all duration-700 ${isDestroying ? 'blur-sm scale-[0.98]' : ''}`}
+        style={{ height: '100dvh' }}
+      >
+        <header className="border-b border-zinc-800 p-3 md:p-4 flex items-center justify-between bg-zinc-900/30">
+          <div className="flex items-center gap-2 md:gap-4">
             <div className="flex flex-col">
-              <span className="text-xs text-zinc-500 uppercase">Room ID</span>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-green-500">{roomId}</span>
+              <span className="text-[10px] md:text-xs text-zinc-500 uppercase whitespace-nowrap">
+                Room ID
+              </span>
+              <div className="flex items-center gap-1 md:gap-2">
+                <span className="font-bold text-green-500 text-sm md:text-base">{roomId}</span>
                 <button
                   onClick={() => copyLink()}
                   className="text-[10px] bg-zinc-800 hover:bg-zinc-700 p-1 rounded text-zinc-400 hover:text-zinc-200 transition-colors"
                 >
                   {copyState === "Copy" ? (
-                    <Copy size={18} />
+                    <Copy size={14} className="md:w-[18px] md:h-[18px]" />
                   ) : (
-                    <CopyCheck size={18} />
+                    <CopyCheck size={14} className="md:w-[18px] md:h-[18px]" />
                   )}
                 </button>
               </div>
             </div>
             <div className="h-8 w-px bg-zinc-800" />
             <div className="flex flex-col">
-              <span className="text-xs text-zinc-500 uppercase">
+              <span className="text-[10px] md:text-xs text-zinc-500 uppercase whitespace-nowrap">
                 Self Destruct
               </span>
               <span
@@ -264,10 +310,11 @@ const Room = () => {
           </div>
           <button
             onClick={() => destroyRoom()}
-            className="text-xs bg-zinc-800 hover:bg-red-600 px-3 py-1.5 rounded text-zinc-400 hover:text-white font-bold transition-all group flex items-center gap-2 disabled:opacity-50"
+            className="text-[10px] md:text-xs bg-zinc-800 hover:bg-red-600 px-2 py-1 md:px-3 md:py-1.5 rounded text-zinc-400 hover:text-white font-bold transition-all group flex items-center gap-1 md:gap-2 disabled:opacity-50 shrink-0"
           >
             <span className="group-hover:animate-pulse">💣</span>
-            DESTROY NOW
+            <span className="hidden md:inline">DESTROY NOW</span>
+            <span className="md:hidden">DESTROY</span>
           </button>
         </header>
 
@@ -309,6 +356,7 @@ const Room = () => {
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Typing Indicator */}
@@ -345,6 +393,9 @@ const Room = () => {
                 }}
                 placeholder="Type a Message..."
                 onChange={handleInputChange}
+                onFocus={() => {
+                  setTimeout(scrollToBottom, 300);
+                }}
                 className="w-full bg-black border border-zinc-800 focus:border-zinc-700 focus:outline-none transition-colors text-zinc-100 placeholder:text-zinc-700 py-3 pl-8 pr-4 text-sm"
               />
             </div>
