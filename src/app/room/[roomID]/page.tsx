@@ -3,11 +3,16 @@
 import { useUsername } from "@/hooks/use-username";
 import { client } from "@/lib/client";
 import { useRealtime } from "@/lib/realtime-client";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Copy, CopyCheck } from "lucide-react";
+import { Copy, CopyCheck, Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { message } from "@/lib/realtime";
+
+type DisplayMessage = message & {
+  isSending?: boolean;
+};
 
 const Room = () => {
   const params = useParams();
@@ -16,6 +21,7 @@ const Room = () => {
   const router = useRouter();
 
   const { username } = useUsername();
+  const queryClient = useQueryClient();
 
   const [copyState, setCopyState] = useState("Copy");
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
@@ -72,7 +78,7 @@ const Room = () => {
     queryKey: ["messages", roomId],
     queryFn: async () => {
       const res = await client.messages.get({ query: { roomId } });
-      return res.data;
+      return res.data as { messages: DisplayMessage[] };
     },
   });
 
@@ -93,6 +99,37 @@ const Room = () => {
         { query: { roomId } }
       );
       setInput("");
+    },
+    onMutate: async ({ text }) => {
+      await queryClient.cancelQueries({ queryKey: ["messages", roomId] });
+
+      const previousMessages = queryClient.getQueryData<{
+        messages: DisplayMessage[];
+      }>(["messages", roomId]);
+
+      const optimisticMessage: DisplayMessage = {
+        id: `optimistic-${Date.now()}`,
+        sender: username,
+        text,
+        timestamp: Date.now(),
+        roomId,
+        isSending: true,
+      };
+
+      queryClient.setQueryData<{ messages: DisplayMessage[] }>(
+        ["messages", roomId],
+        (old) => ({
+          messages: [...(old?.messages || []), optimisticMessage],
+        })
+      );
+
+      return { previousMessages };
+    },
+    onError: (err, newTodo, context) => {
+      queryClient.setQueryData(
+        ["messages", roomId],
+        context?.previousMessages
+      );
     },
   });
 
@@ -224,6 +261,12 @@ const Room = () => {
                   <span className="text-[10px] text-zinc-600">
                     {format(msg.timestamp, "HH:mm")}
                   </span>
+                  {msg.isSending && (
+                    <span className="text-[10px] text-zinc-500 flex items-center gap-1 animate-pulse">
+                      <Loader2 size={10} className="animate-spin" />
+                      sending...
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-zinc-300 leading-relaxed break-all">
                   {msg.text}
