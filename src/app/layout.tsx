@@ -9,9 +9,25 @@ const jetBrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vanish | Secure, Ephemeral Chat",
+  metadataBase: new URL("https://justvanish.in"),
+  title: "Vanish | Secure Ephemeral Chat",
   description:
     "Create private, self-destructing chat rooms instantly. No logs, no history, just vanish.",
+  openGraph: {
+    title: "Vanish | Secure Ephemeral Chat",
+    description:
+      "Create private, self-destructing chat rooms instantly. No logs, no history, just vanish.",
+    url: "https://justvanish.in",
+    siteName: "Vanish",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vanish | Secure Ephemeral Chat",
+    description:
+      "Create private, self-destructing chat rooms instantly. No logs, no history, just vanish.",
+  },
 };
 
 export default function RootLayout({
