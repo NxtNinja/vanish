@@ -43,13 +43,16 @@ const rooms = new Elysia({ prefix: "/room" })
     "/",
     async ({ auth }) => {
       console.log("Destroying room:", auth.roomId);
+      
+      // Emit destroy event to ALL connected clients
       await realtime
         .channel(auth.roomId)
         .emit("chat.destroy", { isDestroyed: true });
       console.log("Destroy event emitted for:", auth.roomId);
 
-      // Give some time for the event to propagate before deleting keys
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Increased delay to ensure event reaches all clients before deletion
+      // This gives time for real-time connections to receive and process the event
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       // Delete ALL room-related keys
       await Promise.all([
