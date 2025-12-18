@@ -24,7 +24,7 @@ export async function proxy(req: NextRequest) {
   );
 
   if (!meta) {
-    return NextResponse.redirect(new URL("/?error=room-not-found", req.url));
+    return NextResponse.redirect(new URL("/lobby?error=room-not-found", req.url));
   }
 
   const existingToken = req.cookies.get("x-auth-token")?.value;
@@ -44,7 +44,7 @@ export async function proxy(req: NextRequest) {
   // Increase limit to 4 to be more forgiving of ghost tokens/previews
   if (tokenCount >= 4) {
     console.warn(`Room ${roomId} is full. Token count: ${tokenCount}`);
-    return NextResponse.redirect(new URL("/?error=room-full", req.url));
+    return NextResponse.redirect(new URL("/lobby?error=room-full", req.url));
   }
 
   const response = NextResponse.next();

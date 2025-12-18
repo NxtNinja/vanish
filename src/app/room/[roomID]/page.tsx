@@ -142,7 +142,7 @@ const Room = () => {
       await client.room.delete(null, { query: { roomId } });
     },
     onSuccess: () => {
-      router.push("/?destroyed=true");
+      router.push("/lobby?destroyed=true");
     },
     onError: (err) => {
       setIsDestroying(false);
@@ -186,7 +186,7 @@ const Room = () => {
       if (event === "chat.destroy") {
         setIsDestroying(true);
         setTimeout(() => {
-          router.push("/?destroyed=true");
+          router.push("/lobby?destroyed=true");
         }, 1000);
       }
 
