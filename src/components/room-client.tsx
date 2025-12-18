@@ -137,9 +137,11 @@ export function RoomClient() {
         { sender: username, text },
         { query: { roomId } }
       );
-      setInput("");
     },
     onMutate: async ({ text }) => {
+      // Clear input immediately when user sends message
+      setInput("");
+      
       await queryClient.cancelQueries({ queryKey: ["messages", roomId] });
 
       const previousMessages = queryClient.getQueryData<{
@@ -164,7 +166,9 @@ export function RoomClient() {
 
       return { previousMessages };
     },
-    onError: (err, newTodo, context) => {
+    onError: (err, variables, context) => {
+      // Restore input on error so user can retry
+      setInput(variables.text);
       queryClient.setQueryData(
         ["messages", roomId],
         context?.previousMessages
