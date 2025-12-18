@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Shield, Zap, Trash2, ArrowRight, Lock, EyeOff, Timer } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Vanish",
+  title: "Vanish | Secure, Ephermal, Private chat",
   description: "Messages that vanish. The most private way to communicate.",
 };
 
