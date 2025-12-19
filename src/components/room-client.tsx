@@ -68,20 +68,39 @@ export function RoomClient() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
-  const { data: ttlData } = useQuery({
+  const { data: ttlData, refetch: refetchTtl } = useQuery({
     queryKey: ["ttl", roomId],
     queryFn: async () => {
       const res = await client.room.ttl.get({ query: { roomId } });
+      // If room doesn't exist (destroyed), redirect
+      if (res.status !== 200 || !res.data) {
+        router.push("/lobby?destroyed=true");
+        return null;
+      }
       return res.data;
     },
+    staleTime: Infinity,
   });
 
+  // Initialize time remaining from TTL data
   useEffect(() => {
     if (ttlData?.ttl !== undefined) {
       setTimeRemaining(ttlData.ttl);
     }
   }, [ttlData]);
 
+  // Check room existence when tab becomes visible (minimal commands)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && !isDestroying) {
+        refetchTtl();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [refetchTtl, isDestroying]);
+
+  // Countdown timer effect
   useEffect(() => {
     if (timeRemaining === null || timeRemaining < 0) {
       return;
