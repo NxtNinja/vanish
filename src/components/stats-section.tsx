@@ -13,20 +13,10 @@ export function StatsSection() {
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
-    const fetchStats = () => {
-      fetch("/api/stats")
-        .then((res) => res.json())
-        .then(setStats)
-        .catch(console.error);
-    };
-
-    // Initial fetch
-    fetchStats();
-
-    // Poll every 5 seconds for real-time updates
-    const interval = setInterval(fetchStats, 5000);
-
-    return () => clearInterval(interval);
+    fetch("/api/stats")
+      .then((res) => res.json())
+      .then(setStats)
+      .catch(console.error);
   }, []);
 
   const formatNumber = (num: number) => {
