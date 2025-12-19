@@ -19,13 +19,16 @@ export async function proxy(req: NextRequest) {
 
   const roomId = roomMatch[1];
 
-  const meta = await redis.hgetall<{ connected: string[]; createdAt: number }>(
+  const meta = await redis.hgetall<{ connected: string[]; createdAt: number; maxParticipants?: number }>(
     `meta:${roomId}`
   );
 
   if (!meta) {
     return NextResponse.redirect(new URL("/lobby?error=room-not-found", req.url));
   }
+
+  // Default to 2 for backwards compatibility with existing rooms
+  const maxParticipants = meta.maxParticipants || 2;
 
   // Detect and ignore bot/preview requests (WhatsApp, Telegram, Twitter, etc.)
   const userAgent = req.headers.get("user-agent")?.toLowerCase() || "";
@@ -62,9 +65,9 @@ export async function proxy(req: NextRequest) {
   // Atomic check and add
   const tokenCount = await redis.scard(tokenKey);
 
-  // Enforce strict 2-user limit for private chat
-  if (tokenCount >= 2) {
-    console.warn(`Room ${roomId} is full. Token count: ${tokenCount}`);
+  // Enforce dynamic participant limit
+  if (tokenCount >= maxParticipants) {
+    console.warn(`Room ${roomId} is full. Token count: ${tokenCount}, max: ${maxParticipants}`);
     return NextResponse.redirect(new URL("/lobby?error=room-full", req.url));
   }
 

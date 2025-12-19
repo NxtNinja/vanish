@@ -15,10 +15,12 @@ const rooms = new Elysia({ prefix: "/room" })
     async ({ body }) => {
       const roomId = nanoid();
       const ttlSeconds = (body.ttl || 10) * 60;
+      const maxParticipants = body.maxParticipants || 2; // Default to 2 for 1-on-1
 
       await redis.hset(`meta:${roomId}`, {
         connected: [],
         createdAt: Date.now(),
+        maxParticipants,
       });
 
       await redis.expire(`meta:${roomId}`, ttlSeconds);
@@ -31,6 +33,7 @@ const rooms = new Elysia({ prefix: "/room" })
     {
       body: t.Object({
         ttl: t.Optional(t.Number({ minimum: 1, maximum: 20 })),
+        maxParticipants: t.Optional(t.Number({ minimum: 2, maximum: 5 })),
       }),
     }
   )

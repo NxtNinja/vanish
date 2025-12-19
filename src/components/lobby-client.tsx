@@ -4,26 +4,29 @@ import { client } from "@/lib/client";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Loader2, RefreshCw, Shield, Clock, Zap, Check } from "lucide-react";
+import { Loader2, RefreshCw, Shield, Clock, Zap, Check, Users } from "lucide-react";
 
 export function LobbyClient() {
   const { username, refreshUsername } = useUsername();
   const router = useRouter();
   const [ttl, setTtl] = useState(10);
   const [showToast, setShowToast] = useState(false);
+  const [showGroupOptions, setShowGroupOptions] = useState(false);
+  const [maxParticipants, setMaxParticipants] = useState(3);
 
   const searchParams = useSearchParams();
   const wasDestroyed = searchParams.get("destroyed") === "true";
   const error = searchParams.get("error");
 
   const { mutate: createRoom, isPending } = useMutation({
-    mutationFn: async () => {
-      const res = await client.room.create.post({ ttl });
+    mutationFn: async (isGroup?: boolean) => {
+      const res = await client.room.create.post({ 
+        ttl,
+        maxParticipants: isGroup ? maxParticipants : 2
+      });
 
       if (res.status === 200) {
-        // Show toast before redirecting
         setShowToast(true);
-        // Wait a moment for user to see the toast, then redirect
         await new Promise(resolve => setTimeout(resolve, 800));
         router.push(`/room/${res.data?.roomId}`);
       }
@@ -180,14 +183,15 @@ export function LobbyClient() {
             </div>
           </div>
 
-          {/* Card Footer - CTA Button */}
-          <div className="p-6 pt-0">
+          {/* Card Footer - CTA Buttons */}
+          <div className="p-6 pt-0 space-y-3">
+            {/* 1-on-1 Room Button */}
             <button
-              onClick={() => createRoom()}
+              onClick={() => createRoom(false)}
               disabled={isPending}
               className="w-full bg-green-500 hover:bg-green-400 text-black p-4 text-sm font-bold tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 group"
             >
-              {isPending ? (
+              {isPending && !showGroupOptions ? (
                 <>
                   <Loader2 className="animate-spin" size={18} />
                   <span>INITIALIZING...</span>
@@ -199,6 +203,70 @@ export function LobbyClient() {
                 </>
               )}
             </button>
+
+            {/* Group Chat Toggle */}
+            {!showGroupOptions ? (
+              <button
+                onClick={() => setShowGroupOptions(true)}
+                disabled={isPending}
+                className="w-full border border-zinc-700 hover:border-zinc-600 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white p-3 text-xs font-bold tracking-wide transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Users size={14} />
+                <span>Create Group Chat (3-5 members)</span>
+              </button>
+            ) : (
+              <div className="border border-zinc-700 bg-zinc-900/50 p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-zinc-400 text-[11px] uppercase tracking-wider font-bold">
+                    <Users size={12} className="text-blue-500" />
+                    Max Members
+                  </label>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-bold text-white tabular-nums">{maxParticipants}</span>
+                    <span className="text-zinc-500 text-xs font-bold">PEOPLE</span>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  {[3, 4, 5].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => setMaxParticipants(num)}
+                      className={`flex-1 py-2 text-sm font-bold transition-all ${
+                        maxParticipants === num
+                          ? "bg-blue-500 text-white"
+                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowGroupOptions(false)}
+                    className="flex-1 py-2 text-xs text-zinc-500 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => createRoom(true)}
+                    disabled={isPending}
+                    className="flex-1 bg-blue-500 hover:bg-blue-400 text-white py-2 text-xs font-bold tracking-wide transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isPending ? (
+                      <Loader2 className="animate-spin" size={14} />
+                    ) : (
+                      <>
+                        <Users size={14} />
+                        CREATE GROUP
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
