@@ -132,8 +132,15 @@ export function RoomClient() {
     queryKey: ["messages", roomId],
     queryFn: async () => {
       const res = await client.messages.get({ query: { roomId } });
+      // If room is gone, redirect to lobby
+      if (res.status !== 200) {
+        router.push("/lobby?destroyed=true");
+        return { messages: [] };
+      }
       return res.data as { messages: DisplayMessage[] };
     },
+    // Fast polling when destroy event received, slow otherwise
+    refetchInterval: isDestroying ? 2000 : 30000,
   });
 
   useEffect(() => {
