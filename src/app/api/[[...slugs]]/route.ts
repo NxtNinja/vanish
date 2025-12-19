@@ -51,15 +51,22 @@ const rooms = new Elysia({ prefix: "/room" })
     async ({ auth }) => {
       console.log("Destroying room:", auth.roomId);
       
+      // Get room metadata to check if it's a group chat
+      const meta = await redis.hgetall<{ maxParticipants?: number }>(`meta:${auth.roomId}`);
+      const isGroupChat = (meta?.maxParticipants || 2) > 2;
+      
       // Emit destroy event to ALL connected clients FIRST
-      // This ensures clients receive the event before we clean up
       await realtime
         .channel(auth.roomId)
         .emit("chat.destroy", { isDestroyed: true });
       console.log("Destroy event emitted for:", auth.roomId);
 
-      // Delete ALL room-related keys immediately - no delay needed
-      // Realtime event will reach clients through WebSocket, not Redis polling
+      // Only delay for group chats (3+) to ensure event propagates
+      if (isGroupChat) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      // Now delete all room-related keys
       await Promise.all([
         redis.del(`meta:${auth.roomId}`),
         redis.del(`messages:${auth.roomId}`),
