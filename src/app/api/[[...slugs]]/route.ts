@@ -6,6 +6,7 @@ import z from "zod";
 import { message, realtime } from "@/lib/realtime";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { getClientIp, rateLimit, createRateLimitResponse } from "@/lib/rate-limit";
+import { stats } from "@/lib/stats";
 
 
 const rooms = new Elysia({ prefix: "/room" })
@@ -21,6 +22,9 @@ const rooms = new Elysia({ prefix: "/room" })
       });
 
       await redis.expire(`meta:${roomId}`, ttlSeconds);
+
+      // Track room creation for stats
+      await stats.roomCreated();
 
       return { roomId };
     },
@@ -62,6 +66,10 @@ const rooms = new Elysia({ prefix: "/room" })
       ]);
       
       console.log(`All keys deleted for room: ${auth.roomId}`);
+      
+      // Track room vanished for stats
+      await stats.roomVanished();
+      
       return { success: true };
     },
     { query: z.object({ roomId: z.string() }) }
@@ -98,6 +106,9 @@ const messages = new Elysia({ prefix: "/messages" })
       };
 
       await redis.rpush(`messages:${roomId}`, encryptedMessage);
+      
+      // Track message for stats
+      await stats.messageSent();
       
       // Emit original unencrypted message to realtime (end-to-end in memory)
       await realtime.channel(roomId).emit("chat.message", message);

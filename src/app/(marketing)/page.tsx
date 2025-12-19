@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Shield, Zap, Trash2, ArrowRight, Lock, EyeOff, Timer } from "lucide-react";
+import { StatsSection } from "@/components/stats-section";
 
 export const metadata: Metadata = {
   title: "Vanish | Secure Ephermal Private chat",
@@ -46,7 +47,8 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* Features Grid */}
+        {/* Stats Section */}
+        <StatsSection />
         <section className="max-w-7xl mx-auto px-6 py-32 relative">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-1px bg-zinc-800/50 border border-zinc-800/50">
             <div className="bg-[#030303] p-12 space-y-6 group hover:bg-zinc-900/30 transition-colors">
