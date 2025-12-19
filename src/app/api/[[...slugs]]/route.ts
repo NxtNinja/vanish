@@ -44,17 +44,15 @@ const rooms = new Elysia({ prefix: "/room" })
     async ({ auth }) => {
       console.log("Destroying room:", auth.roomId);
       
-      // Emit destroy event to ALL connected clients
+      // Emit destroy event to ALL connected clients FIRST
+      // This ensures clients receive the event before we clean up
       await realtime
         .channel(auth.roomId)
         .emit("chat.destroy", { isDestroyed: true });
       console.log("Destroy event emitted for:", auth.roomId);
 
-      // Increased delay to ensure event reaches all clients before deletion
-      // This gives time for real-time connections to receive and process the event
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-
-      // Delete ALL room-related keys
+      // Delete ALL room-related keys immediately - no delay needed
+      // Realtime event will reach clients through WebSocket, not Redis polling
       await Promise.all([
         redis.del(`meta:${auth.roomId}`),
         redis.del(`messages:${auth.roomId}`),
@@ -64,6 +62,7 @@ const rooms = new Elysia({ prefix: "/room" })
       ]);
       
       console.log(`All keys deleted for room: ${auth.roomId}`);
+      return { success: true };
     },
     { query: z.object({ roomId: z.string() }) }
   );

@@ -6,8 +6,8 @@ const redis = new Redis({
 });
 
 const RATE_LIMIT_CONFIG = {
-  windowMs: 10000,
-  maxRequests: 10,
+  windowMs: 15000,  // 15 seconds
+  maxRequests: 30,  // 30 requests per window (more reasonable for chat + typing)
   blockDurationMs: 60000,
 };
 
@@ -28,38 +28,46 @@ export async function rateLimit(ip: string) {
   const key = `ratelimit:${ip}`;
   const blockKey = `ratelimit:block:${ip}`;
 
-  const isBlocked = await redis.get(blockKey);
+  // Use pipeline to batch Redis operations - reduces round trips
+  const pipeline = redis.pipeline();
+  pipeline.get(blockKey);
+  pipeline.incr(key);
+  pipeline.ttl(key);
+  
+  const results = await pipeline.exec<[string | null, number, number]>();
+  const [isBlocked, currentCount, ttl] = results;
+
+  // Check if blocked
   if (isBlocked) {
-    const ttl = await redis.ttl(blockKey);
+    const blockTtl = await redis.ttl(blockKey);
     return {
       allowed: false,
       remaining: 0,
-      resetAt: now + ttl * 1000,
-      retryAfter: ttl,
+      resetAt: now + blockTtl * 1000,
+      retryAfter: blockTtl,
     };
   }
 
-  const currentCount = await redis.incr(key);
+  // Set expiry on first request in window
   if (currentCount === 1) {
     await redis.pexpire(key, RATE_LIMIT_CONFIG.windowMs);
   }
 
+  // Check if over limit
   if (currentCount > RATE_LIMIT_CONFIG.maxRequests) {
     await redis.set(blockKey, "1", { px: RATE_LIMIT_CONFIG.blockDurationMs });
-    const ttl = await redis.ttl(key);
     return {
       allowed: false,
       remaining: 0,
-      resetAt: now + ttl * 1000,
+      resetAt: now + (ttl > 0 ? ttl * 1000 : RATE_LIMIT_CONFIG.windowMs),
       retryAfter: Math.ceil(RATE_LIMIT_CONFIG.blockDurationMs / 1000),
     };
   }
 
-  const ttl = await redis.ttl(key);
   return {
     allowed: true,
     remaining: Math.max(0, RATE_LIMIT_CONFIG.maxRequests - currentCount),
-    resetAt: now + ttl * 1000,
+    resetAt: now + (ttl > 0 ? ttl * 1000 : RATE_LIMIT_CONFIG.windowMs),
   };
 }
 

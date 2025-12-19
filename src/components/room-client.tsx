@@ -109,7 +109,7 @@ export function RoomClient() {
     return () => clearInterval(interval);
   }, [timeRemaining, router]);
 
-  const { data: messages, refetch } = useQuery({
+  const { data: messages } = useQuery({
     queryKey: ["messages", roomId],
     queryFn: async () => {
       const res = await client.messages.get({ query: { roomId } });
@@ -221,15 +221,40 @@ export function RoomClient() {
     events: ["chat.message", "chat.destroy", "chat.typing"],
     onData: ({ event, data }) => {
       console.log("Realtime event:", event, data);
+      
       if (event === "chat.message") {
-        refetch();
+        // Use realtime message data directly - no refetch needed!
+        // This makes messages appear instantly without an API call
+        const newMessage = data as message;
+        
+        queryClient.setQueryData<{ messages: DisplayMessage[] }>(
+          ["messages", roomId],
+          (old) => {
+            const existing = old?.messages || [];
+            
+            // Deduplicate by ID to handle simultaneous messages gracefully
+            if (existing.some(m => m.id === newMessage.id)) {
+              return old;
+            }
+            
+            // Remove optimistic message with matching sender and text
+            // This replaces the "sending..." message with the confirmed one
+            const filtered = existing.filter(m => 
+              !(m.isSending && m.sender === newMessage.sender && m.text === newMessage.text)
+            );
+            
+            return { messages: [...filtered, newMessage] };
+          }
+        );
       }
 
       if (event === "chat.destroy") {
+        // Immediately respond to destroy event - no delays
         setIsDestroying(true);
+        // Short timeout just for visual feedback, then navigate
         setTimeout(() => {
           router.push("/lobby?destroyed=true");
-        }, 1000);
+        }, 500);
       }
 
       if (event === "chat.typing") {
