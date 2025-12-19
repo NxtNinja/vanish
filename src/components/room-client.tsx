@@ -340,10 +340,9 @@ export function RoomClient() {
             <div className="flex items-center justify-end">
               <button
                 onClick={() => destroyRoom()}
-                className="bg-zinc-900 hover:bg-red-600 border-2 border-zinc-800 hover:border-red-500 px-4 py-2 text-zinc-400 hover:text-white font-bold text-xs md:text-sm tracking-wider uppercase transition-all group flex items-center gap-2 disabled:opacity-50"
+                className="bg-zinc-900 hover:bg-red-600 border-2 border-zinc-800 hover:border-red-500 px-4 py-2 text-zinc-400 hover:text-white font-bold text-xs md:text-sm tracking-wider uppercase transition-all"
               >
-                <span className="group-hover:animate-pulse">💣</span>
-                <span className="hidden sm:inline">DESTROY</span>
+                VANISH
               </button>
             </div>
           </div>

@@ -4,12 +4,13 @@ import { client } from "@/lib/client";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Loader2, RefreshCw, Shield, Clock, Zap } from "lucide-react";
+import { Loader2, RefreshCw, Shield, Clock, Zap, Check } from "lucide-react";
 
 export function LobbyClient() {
   const { username, refreshUsername } = useUsername();
   const router = useRouter();
   const [ttl, setTtl] = useState(10);
+  const [showToast, setShowToast] = useState(false);
 
   const searchParams = useSearchParams();
   const wasDestroyed = searchParams.get("destroyed") === "true";
@@ -20,6 +21,10 @@ export function LobbyClient() {
       const res = await client.room.create.post({ ttl });
 
       if (res.status === 200) {
+        // Show toast before redirecting
+        setShowToast(true);
+        // Wait a moment for user to see the toast, then redirect
+        await new Promise(resolve => setTimeout(resolve, 800));
         router.push(`/room/${res.data?.roomId}`);
       }
     },
@@ -27,6 +32,16 @@ export function LobbyClient() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-black">
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3 bg-green-500 text-black px-5 py-3 font-bold text-sm tracking-wide shadow-lg shadow-green-500/20">
+            <Check size={18} strokeWidth={3} />
+            <span>Room created! Redirecting...</span>
+          </div>
+        </div>
+      )}
+
       {/* Subtle background grid pattern */}
       <div className="fixed inset-0 bg-[linear-gradient(rgba(34,197,94,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none" />
       
@@ -87,6 +102,9 @@ export function LobbyClient() {
           </h1>
           <p className="text-zinc-500 text-sm max-w-xs mx-auto leading-relaxed">
             Private, encrypted, self-destructing conversations. Be respectful.
+          </p>
+          <p className="text-zinc-600 text-[10px] font-bold tracking-widest uppercase mt-3">
+            ENCRYPTED • AUTO-DELETE • ANONYMOUS
           </p>
         </div>
 
@@ -197,21 +215,6 @@ export function LobbyClient() {
           </div>
         </div>
 
-        {/* Footer Features */}
-        <div className="grid grid-cols-3 gap-3 pt-2">
-          <div className="text-center p-3 border border-zinc-800/50 bg-zinc-900/30">
-            <div className="text-green-500 text-lg mb-1">🔐</div>
-            <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Encrypted</div>
-          </div>
-          <div className="text-center p-3 border border-zinc-800/50 bg-zinc-900/30">
-            <div className="text-amber-500 text-lg mb-1">⏱️</div>
-            <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Auto-Delete</div>
-          </div>
-          <div className="text-center p-3 border border-zinc-800/50 bg-zinc-900/30">
-            <div className="text-blue-500 text-lg mb-1">👤</div>
-            <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Anonymous</div>
-          </div>
-        </div>
       </div>
     </main>
   );
