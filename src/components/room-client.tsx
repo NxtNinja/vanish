@@ -284,7 +284,7 @@ export function RoomClient() {
             </div>
             <div className="flex flex-col items-center gap-1">
               <h2 className="text-xl font-bold text-white tracking-tight">
-                DESTROYING ROOM
+                VANISHING
               </h2>
               <p className="text-zinc-500 text-sm font-mono">
                 Wiping all traces from existence...
@@ -336,7 +336,7 @@ export function RoomClient() {
               </div>
             </div>
 
-            {/* Destroy Button */}
+            {/* Vanish Button */}
             <div className="flex items-center justify-end">
               <button
                 onClick={() => destroyRoom()}

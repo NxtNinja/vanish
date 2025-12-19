@@ -34,7 +34,7 @@ export function LobbyClient() {
     <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-black">
       {/* Toast Notification */}
       {showToast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex items-center gap-3 bg-green-500 text-black px-5 py-3 font-bold text-sm tracking-wide shadow-lg shadow-green-500/20">
             <Check size={18} strokeWidth={3} />
             <span>Room created! Redirecting...</span>
@@ -45,49 +45,36 @@ export function LobbyClient() {
       {/* Subtle background grid pattern */}
       <div className="fixed inset-0 bg-[linear-gradient(rgba(34,197,94,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none" />
       
-      <div className="w-full max-w-md space-y-6 relative z-10">
-        {/* Status Messages */}
-        {wasDestroyed && (
-          <div className="bg-red-950/30 border-2 border-red-900/50 p-5 backdrop-blur-sm">
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-xl">💥</span>
-              <div>
-                <p className="text-red-400 text-sm font-bold tracking-wide">ROOM DESTROYED</p>
-                <p className="text-zinc-500 text-xs mt-0.5">
-                  All messages permanently erased.
-                </p>
-              </div>
-            </div>
+      {/* Status Messages - Fixed at top */}
+      {wasDestroyed && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+          <div className="flex items-center gap-2 bg-red-950/90 border border-red-900/50 px-4 py-2 text-sm backdrop-blur-sm">
+            <span>💥</span>
+            <span className="text-red-400 font-bold">Room vanished</span>
+            <span className="text-zinc-500 text-xs">• All messages erased</span>
           </div>
-        )}
+        </div>
+      )}
 
-        {error === "room-not-found" && (
-          <div className="bg-amber-950/30 border-2 border-amber-900/50 p-5 backdrop-blur-sm">
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-xl">🔍</span>
-              <div>
-                <p className="text-amber-400 text-sm font-bold tracking-wide">ROOM NOT FOUND</p>
-                <p className="text-zinc-500 text-xs mt-0.5">
-                  Room destroyed or never existed.
-                </p>
-              </div>
-            </div>
+      {error === "room-not-found" && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+          <div className="flex items-center gap-2 bg-amber-950/90 border border-amber-900/50 px-4 py-2 text-sm backdrop-blur-sm">
+            <span>🔍</span>
+            <span className="text-amber-400 font-bold">Room not found</span>
           </div>
-        )}
+        </div>
+      )}
 
-        {error === "room-full" && (
-          <div className="bg-amber-950/30 border-2 border-amber-900/50 p-5 backdrop-blur-sm">
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-xl">🚫</span>
-              <div>
-                <p className="text-amber-400 text-sm font-bold tracking-wide">ROOM FULL</p>
-                <p className="text-zinc-500 text-xs mt-0.5">
-                  Maximum capacity reached.
-                </p>
-              </div>
-            </div>
+      {error === "room-full" && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+          <div className="flex items-center gap-2 bg-amber-950/90 border border-amber-900/50 px-4 py-2 text-sm backdrop-blur-sm">
+            <span>🚫</span>
+            <span className="text-amber-400 font-bold">Room full</span>
           </div>
-        )}
+        </div>
+      )}
+
+      <div className="w-full max-w-md space-y-5 relative z-10">
 
         {/* Header Section */}
         <div className="text-center space-y-4 py-4">
