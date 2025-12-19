@@ -3,8 +3,8 @@ import { useUsername } from "@/hooks/use-username";
 import { client } from "@/lib/client";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
-import { Loader2, RefreshCw, Shield, Clock, Zap, Check, Users } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, RefreshCw, Shield, Clock, Zap, Check, Users, X } from "lucide-react";
 
 export function LobbyClient() {
   const { username, refreshUsername } = useUsername();
@@ -13,10 +13,24 @@ export function LobbyClient() {
   const [showToast, setShowToast] = useState(false);
   const [showGroupOptions, setShowGroupOptions] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState(3);
+  const [showStatusToast, setShowStatusToast] = useState(true);
 
   const searchParams = useSearchParams();
   const wasDestroyed = searchParams.get("destroyed") === "true";
   const error = searchParams.get("error");
+
+  // Auto-dismiss status toasts after 4 seconds
+  useEffect(() => {
+    if (wasDestroyed || error) {
+      setShowStatusToast(true);
+      const timer = setTimeout(() => {
+        setShowStatusToast(false);
+        // Clear URL params
+        router.replace("/lobby");
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [wasDestroyed, error, router]);
 
   const { mutate: createRoom, isPending } = useMutation({
     mutationFn: async (isGroup?: boolean) => {
@@ -48,31 +62,40 @@ export function LobbyClient() {
       {/* Subtle background grid pattern */}
       <div className="fixed inset-0 bg-[linear-gradient(rgba(34,197,94,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none" />
       
-      {/* Status Messages - Fixed at top */}
-      {wasDestroyed && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-          <div className="flex items-center gap-2 bg-red-950/90 border border-red-900/50 px-4 py-2 text-sm backdrop-blur-sm">
+      {/* Toast Messages - Auto-dismiss after 4s */}
+      {wasDestroyed && showStatusToast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-3 bg-red-500 text-white px-5 py-3 rounded-lg shadow-lg shadow-red-500/20">
             <span>💥</span>
-            <span className="text-red-400 font-bold">Room vanished</span>
-            <span className="text-zinc-500 text-xs">• All messages erased</span>
+            <span className="font-bold text-sm">Room vanished</span>
+            <span className="text-red-200 text-xs">• All messages erased</span>
+            <button onClick={() => { setShowStatusToast(false); router.replace("/lobby"); }} className="ml-2 hover:bg-red-600 p-1 rounded">
+              <X size={14} />
+            </button>
           </div>
         </div>
       )}
 
-      {error === "room-not-found" && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-          <div className="flex items-center gap-2 bg-amber-950/90 border border-amber-900/50 px-4 py-2 text-sm backdrop-blur-sm">
+      {error === "room-not-found" && showStatusToast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-3 bg-amber-500 text-black px-5 py-3 rounded-lg shadow-lg shadow-amber-500/20">
             <span>🔍</span>
-            <span className="text-amber-400 font-bold">Room not found</span>
+            <span className="font-bold text-sm">Room not found</span>
+            <button onClick={() => { setShowStatusToast(false); router.replace("/lobby"); }} className="ml-2 hover:bg-amber-600 p-1 rounded">
+              <X size={14} />
+            </button>
           </div>
         </div>
       )}
 
-      {error === "room-full" && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-          <div className="flex items-center gap-2 bg-amber-950/90 border border-amber-900/50 px-4 py-2 text-sm backdrop-blur-sm">
+      {error === "room-full" && showStatusToast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-3 bg-amber-500 text-black px-5 py-3 rounded-lg shadow-lg shadow-amber-500/20">
             <span>🚫</span>
-            <span className="text-amber-400 font-bold">Room full</span>
+            <span className="font-bold text-sm">Room full</span>
+            <button onClick={() => { setShowStatusToast(false); router.replace("/lobby"); }} className="ml-2 hover:bg-amber-600 p-1 rounded">
+              <X size={14} />
+            </button>
           </div>
         </div>
       )}
