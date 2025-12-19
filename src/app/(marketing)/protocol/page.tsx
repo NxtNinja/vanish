@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Cpu, Globe, Zap, Database, Key } from "lucide-react";
+import { ArrowLeft, Cpu, Globe, Zap, Database, Key, Users } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Protocol | Vanish",
@@ -61,6 +61,14 @@ export default function ProtocolPage() {
                 Our protocol ensures that no backups, logs, or traces of the conversation exist once the room is destroyed. The deletion is final and irreversible.
               </p>
             </div>
+
+            <div className="p-8 bg-blue-500/5 border-2 border-blue-500/20 backdrop-blur-md space-y-4">
+              <Users className="text-blue-500" size={24} />
+              <h3 className="text-xl font-bold text-white">Group Chats</h3>
+              <p className="text-zinc-500 text-sm leading-relaxed">
+                Create secure rooms for 3-5 participants. Group rooms use identical encryption and TTL protocols. Participant limits are enforced at the middleware level via atomic token sets.
+              </p>
+            </div>
           </div>
 
           <section className="space-y-8 pt-8 border-t border-zinc-900">
@@ -86,6 +94,15 @@ export default function ProtocolPage() {
               </div>
               <div className="flex gap-6">
                 <div className="text-green-500 font-mono text-sm font-bold pt-1">03</div>
+                <div className="space-y-2">
+                  <h4 className="text-white font-bold">Participant Limits</h4>
+                  <p className="text-zinc-500 text-sm leading-relaxed">
+                    Room capacity is configurable (2 for private, 3-5 for groups). Limits are enforced via atomic Redis set operations. Excess connections are rejected with a "room full" response.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-6">
+                <div className="text-green-500 font-mono text-sm font-bold pt-1">04</div>
                 <div className="space-y-2">
                   <h4 className="text-white font-bold">Atomic Destruction</h4>
                   <p className="text-zinc-500 text-sm leading-relaxed">

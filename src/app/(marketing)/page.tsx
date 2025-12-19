@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Shield, Zap, Trash2, ArrowRight, Lock, EyeOff, Timer } from "lucide-react";
+import { Shield, Zap, Trash2, ArrowRight, Lock, EyeOff, Timer, Users } from "lucide-react";
 import { StatsSection } from "@/components/stats-section";
 
 export const metadata: Metadata = {
@@ -85,6 +85,24 @@ const LandingPage = () => {
                   Set your room's TTL from 1 to 20 minutes. When the timer hits zero, the entire room is purged from memory.
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Group Chat Feature */}
+          <div className="mt-8 p-8 bg-zinc-900/30 border border-zinc-800/50 flex flex-col md:flex-row gap-8 items-center">
+            <div className="w-16 h-16 flex items-center justify-center bg-blue-500/10 border border-blue-500/30 shrink-0">
+              <Users className="text-blue-500" size={28} />
+            </div>
+            <div className="space-y-2 flex-1">
+              <h3 className="text-xl font-bold text-white tracking-tight">Private Group Chats</h3>
+              <p className="text-zinc-500 text-sm leading-relaxed">
+                Create secure group conversations for 3-5 people. Same end-to-end encryption, same ephemeral architecture. 
+                Perfect for team discussions or coordinating with trusted contacts — all messages vanish together.
+              </p>
+            </div>
+            <div className="flex gap-2 font-mono text-xs text-zinc-600">
+              <span className="px-3 py-1 bg-zinc-800">3-5 MEMBERS</span>
+              <span className="px-3 py-1 bg-zinc-800">ENCRYPTED</span>
             </div>
           </div>
         </section>
