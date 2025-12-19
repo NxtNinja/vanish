@@ -77,9 +77,6 @@ const rooms = new Elysia({ prefix: "/room" })
       
       console.log(`All keys deleted for room: ${auth.roomId}`);
       
-      // Track room vanished for stats
-      await stats.roomVanished();
-      
       return { success: true };
     },
     { query: z.object({ roomId: z.string() }) }

@@ -4,8 +4,6 @@ import { redis } from "./redis";
 const KEYS = {
   totalRooms: "stats:total_rooms",
   totalMessages: "stats:total_messages",
-  totalVanished: "stats:total_vanished",
-  activeRooms: "stats:active_rooms", // This will be calculated dynamically
 };
 
 /**
@@ -23,23 +21,37 @@ export const stats = {
     await redis.incr(KEYS.totalMessages);
   },
 
-  /** Called when a room is vanished (destroyed) */
-  async roomVanished() {
-    await redis.incr(KEYS.totalVanished);
+  /** Count active rooms by scanning for meta:* keys */
+  async getActiveRoomCount(): Promise<number> {
+    let count = 0;
+    let cursor = 0;
+    
+    do {
+      // SCAN for meta:* keys (each room has one meta key)
+      const result = await redis.scan(cursor, { match: "meta:*", count: 100 });
+      cursor = Number(result[0]);
+      count += result[1].length;
+    } while (cursor !== 0);
+    
+    return count;
   },
 
   /** Get all stats for display */
   async getAll() {
-    const [totalRooms, totalMessages, totalVanished] = await Promise.all([
+    const [totalRooms, totalMessages, activeRooms] = await Promise.all([
       redis.get<number>(KEYS.totalRooms),
       redis.get<number>(KEYS.totalMessages),
-      redis.get<number>(KEYS.totalVanished),
+      stats.getActiveRoomCount(),
     ]);
 
+    const total = totalRooms || 0;
+    // Vanished = total ever created - currently active
+    const vanished = Math.max(0, total - activeRooms);
+
     return {
-      totalRooms: totalRooms || 0,
+      totalRooms: total,
       totalMessages: totalMessages || 0,
-      totalVanished: totalVanished || 0,
+      totalVanished: vanished,
     };
   },
 };
