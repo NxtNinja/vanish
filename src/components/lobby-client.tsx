@@ -4,7 +4,7 @@ import { client } from "@/lib/client";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, Shield, Clock, Zap } from "lucide-react";
 
 export function LobbyClient() {
   const { username, refreshUsername } = useUsername();
@@ -26,102 +26,190 @@ export function LobbyClient() {
   });
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-black">
+      {/* Subtle background grid pattern */}
+      <div className="fixed inset-0 bg-[linear-gradient(rgba(34,197,94,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none" />
+      
+      <div className="w-full max-w-md space-y-6 relative z-10">
+        {/* Status Messages */}
         {wasDestroyed && (
-          <div className="bg-red-950/50 border border-red-900 p-6 text-center">
-            <p className="text-red-500 text-sm font-bold">ROOM DESTROYED</p>
-            <p className="text-zinc-500 text-xs mt-1">
-              All messages were permanently deleted.
-            </p>
+          <div className="bg-red-950/30 border-2 border-red-900/50 p-5 backdrop-blur-sm">
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-xl">💥</span>
+              <div>
+                <p className="text-red-400 text-sm font-bold tracking-wide">ROOM DESTROYED</p>
+                <p className="text-zinc-500 text-xs mt-0.5">
+                  All messages permanently erased.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
         {error === "room-not-found" && (
-          <div className="bg-red-950/50 border border-red-900 p-6 text-center">
-            <p className="text-red-500 text-sm font-bold">ROOM NOT FOUND</p>
-            <p className="text-zinc-500 text-xs mt-1">
-              This room may have been destroyed or never existed.
-            </p>
+          <div className="bg-amber-950/30 border-2 border-amber-900/50 p-5 backdrop-blur-sm">
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-xl">🔍</span>
+              <div>
+                <p className="text-amber-400 text-sm font-bold tracking-wide">ROOM NOT FOUND</p>
+                <p className="text-zinc-500 text-xs mt-0.5">
+                  Room destroyed or never existed.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
         {error === "room-full" && (
-          <div className="bg-red-950/50 border border-red-900 p-6 text-center">
-            <p className="text-red-500 text-sm font-bold">ROOM FULL</p>
-            <p className="text-zinc-500 text-xs mt-1">
-              This room is at maximum capacity.
-            </p>
+          <div className="bg-amber-950/30 border-2 border-amber-900/50 p-5 backdrop-blur-sm">
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-xl">🚫</span>
+              <div>
+                <p className="text-amber-400 text-sm font-bold tracking-wide">ROOM FULL</p>
+                <p className="text-zinc-500 text-xs mt-0.5">
+                  Maximum capacity reached.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight text-green-500">
-              {">"} vanish_chat
-            </h1>
-            <p className="text-zinc-500 text-sm">
-              A private, self-destructing chat room.
-            </p>
+        {/* Header Section */}
+        <div className="text-center space-y-4 py-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-green-950/30 border border-green-900/50 text-green-400 text-[10px] font-bold tracking-widest uppercase">
+            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+            Secure Protocol Active
           </div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            <span className="text-green-500">{">"}</span>
+            <span className="text-white"> vanish</span>
+            <span className="text-zinc-600">_chat</span>
+          </h1>
+          <p className="text-zinc-500 text-sm max-w-xs mx-auto leading-relaxed">
+            Private, encrypted, self-destructing conversations. Be respectful.
+          </p>
         </div>
-        <div className="border border-zinc-800 bg-zinc-900/50 p-6 backdrop-blur-md">
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="flex items-center text-zinc-500 text-xs uppercase tracking-wider font-bold">
+
+        {/* Main Card */}
+        <div className="border-2 border-zinc-800 bg-zinc-900/80 backdrop-blur-md overflow-hidden">
+          {/* Card Header */}
+          <div className="border-b border-zinc-800 bg-zinc-900 px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-green-500/10 border border-green-500/30 flex items-center justify-center">
+                <Shield size={16} className="text-green-500" />
+              </div>
+              <div>
+                <h2 className="text-white text-sm font-bold">Create New Room</h2>
+                <p className="text-zinc-500 text-[11px]">Configure your secure session</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Content */}
+          <div className="p-6 space-y-6">
+            {/* Identity Section */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-zinc-400 text-[11px] uppercase tracking-wider font-bold">
+                <Zap size={12} className="text-green-500" />
                 Your Identity
               </label>
               <div className="flex items-center gap-2">
-                <div className="flex-1 bg-zinc-950 border border-zinc-800 p-3 text-sm text-zinc-400 font-mono">
-                  {username}
+                <div className="flex-1 bg-black border-2 border-zinc-800 p-3.5 text-sm text-green-400 font-mono tracking-wide">
+                  <span className="text-zinc-600 mr-1">@</span>{username}
                 </div>
                 <button
                   onClick={() => refreshUsername()}
-                  className="p-3 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-white"
-                  title="Refresh Identity"
+                  className="p-3.5 bg-zinc-800 border-2 border-zinc-700 hover:border-green-500/50 hover:bg-zinc-700 transition-all text-zinc-400 hover:text-green-400 group"
+                  title="Generate New Identity"
                 >
-                  <RefreshCw size={18} />
+                  <RefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
                 </button>
               </div>
+              <p className="text-zinc-600 text-[10px]">Anonymous identity auto-generated</p>
             </div>
 
-            <div className="space-y-3">
+            {/* TTL Section */}
+            <div className="space-y-4 pt-2">
               <div className="flex justify-between items-center">
-                <label className="text-zinc-500 text-xs uppercase tracking-wider font-bold">
+                <label className="flex items-center gap-2 text-zinc-400 text-[11px] uppercase tracking-wider font-bold">
+                  <Clock size={12} className="text-amber-500" />
                   Room Lifespan
                 </label>
-                <span className="text-green-500 font-mono text-sm font-bold">
-                  {ttl} MINS
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold text-white tabular-nums">{ttl}</span>
+                  <span className="text-zinc-500 text-xs font-bold">MIN{ttl !== 1 ? 'S' : ''}</span>
+                </div>
+              </div>
+              
+              {/* Custom Slider Track */}
+              <div className="relative py-2">
+                <div className="h-2 bg-zinc-800 relative overflow-hidden">
+                  <div 
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-green-600 to-green-400"
+                    style={{ width: `${((ttl - 1) / 19) * 100}%` }}
+                  />
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="20"
+                  value={ttl}
+                  onChange={(e) => setTtl(parseInt(e.target.value))}
+                  className="absolute inset-0 w-full opacity-0 cursor-pointer"
+                />
+              </div>
+              
+              <div className="flex justify-between text-[10px] text-zinc-600 font-mono">
+                <span className="flex items-center gap-1">
+                  <span className="w-1 h-1 bg-zinc-600 rounded-full" />
+                  1 MIN
+                </span>
+                <span className="text-zinc-700">|</span>
+                <span className="text-zinc-500">10 MIN</span>
+                <span className="text-zinc-700">|</span>
+                <span className="flex items-center gap-1">
+                  20 MIN
+                  <span className="w-1 h-1 bg-zinc-600 rounded-full" />
                 </span>
               </div>
-              <input
-                type="range"
-                min="1"
-                max="20"
-                value={ttl}
-                onChange={(e) => setTtl(parseInt(e.target.value))}
-                className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-green-500"
-              />
-              <div className="flex justify-between text-[10px] text-zinc-600 font-mono">
-                <span>1 MIN</span>
-                <span>20 MINS</span>
-              </div>
             </div>
+          </div>
 
+          {/* Card Footer - CTA Button */}
+          <div className="p-6 pt-0">
             <button
               onClick={() => createRoom()}
               disabled={isPending}
-              className="w-full bg-zinc-100 text-black p-4 text-sm font-bold hover:bg-white transition-all mt-2 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+              className="w-full bg-green-500 hover:bg-green-400 text-black p-4 text-sm font-bold tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 group"
             >
               {isPending ? (
                 <>
-                  <Loader2 className="animate-spin" size={16} />
-                  CREATING...
+                  <Loader2 className="animate-spin" size={18} />
+                  <span>INITIALIZING...</span>
                 </>
               ) : (
-                "CREATE SECURE ROOM"
+                <>
+                  <span>CREATE SECURE ROOM</span>
+                  <span className="text-black/60 group-hover:translate-x-1 transition-transform">→</span>
+                </>
               )}
             </button>
+          </div>
+        </div>
+
+        {/* Footer Features */}
+        <div className="grid grid-cols-3 gap-3 pt-2">
+          <div className="text-center p-3 border border-zinc-800/50 bg-zinc-900/30">
+            <div className="text-green-500 text-lg mb-1">🔐</div>
+            <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Encrypted</div>
+          </div>
+          <div className="text-center p-3 border border-zinc-800/50 bg-zinc-900/30">
+            <div className="text-amber-500 text-lg mb-1">⏱️</div>
+            <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Auto-Delete</div>
+          </div>
+          <div className="text-center p-3 border border-zinc-800/50 bg-zinc-900/30">
+            <div className="text-blue-500 text-lg mb-1">👤</div>
+            <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide">Anonymous</div>
           </div>
         </div>
       </div>
