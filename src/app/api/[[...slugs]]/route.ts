@@ -66,6 +66,21 @@ const rooms = new Elysia({ prefix: "/room" })
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
+      // Clean up random:matched entries that point to this room
+      const matchedEntries = await redis.hgetall<Record<string, string>>("random:matched");
+      if (matchedEntries) {
+        const sessionsToDelete = Object.entries(matchedEntries)
+          .filter(([, roomId]) => roomId === auth.roomId)
+          .map(([sessionId]) => sessionId);
+        
+        if (sessionsToDelete.length > 0) {
+          await redis.hdel("random:matched", ...sessionsToDelete);
+          // Also clean up session streams
+          await Promise.all(sessionsToDelete.map(sessionId => redis.del(sessionId)));
+          console.log(`Cleaned up ${sessionsToDelete.length} random:matched entries for room: ${auth.roomId}`);
+        }
+      }
+
       // Now delete all room-related keys
       await Promise.all([
         redis.del(`meta:${auth.roomId}`),
