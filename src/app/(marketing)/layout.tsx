@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Heart } from "lucide-react";
 
 export default function MarketingLayout({
   children,
@@ -30,6 +30,15 @@ export default function MarketingLayout({
             <Link href="/protocol" className="hover:text-white cursor-pointer transition-colors">Protocol</Link>
             <Link href="/security" className="hover:text-white cursor-pointer transition-colors">Security</Link>
             <Link href="/disclaimer" className="hover:text-white cursor-pointer transition-colors">Disclaimer</Link>
+            <a 
+              href="https://github.com/sponsors/NxtNinja" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-pink-500/10 border border-pink-500/30 text-pink-400 hover:bg-pink-500/20 hover:border-pink-500/50 transition-all"
+            >
+              <Heart size={14} className="fill-pink-400" />
+              Sponsor
+            </a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -66,6 +75,16 @@ export default function MarketingLayout({
               >
                 DISCLAIMER
               </Link>
+              <a 
+                href="https://github.com/sponsors/NxtNinja" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 text-pink-400 hover:text-pink-300 transition-colors"
+              >
+                <Heart size={24} className="fill-pink-400" />
+                SPONSOR
+              </a>
             </div>
           </div>
         )}
@@ -118,6 +137,15 @@ export default function MarketingLayout({
               className="hover:text-white transition-colors"
             >
               GitHub
+            </a>
+            <a 
+              href="https://github.com/sponsors/NxtNinja" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-pink-400 hover:text-pink-300 transition-colors"
+            >
+              <Heart size={10} className="fill-pink-400" />
+              Sponsor
             </a>
           </div>
         </footer>
