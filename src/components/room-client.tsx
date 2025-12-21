@@ -438,8 +438,8 @@ export function RoomClient() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Typing Indicator */}
-        {typingUsers.size > 0 && (
+        {/* Typing Indicator - only show if someone OTHER than current user is typing */}
+        {Array.from(typingUsers).filter(user => user !== username).length > 0 && (
           <div className="px-4 py-3 border-t border-zinc-800/50">
             <div className="flex items-center gap-3 max-w-[85%] md:max-w-[70%]">
               {/* Animated Dots */}
@@ -458,12 +458,9 @@ export function RoomClient() {
                 </span>
                 {" "}
                 <span className="text-zinc-500">
-                  {typingUsers.size === 1 && !typingUsers.has(username)
+                  {Array.from(typingUsers).filter(user => user !== username).length === 1
                     ? "is typing"
-                    : typingUsers.size > 1 ||
-                      (typingUsers.size === 1 && typingUsers.has(username))
-                    ? "you are typing"
-                    : ""}
+                    : "are typing"}
                 </span>
               </div>
             </div>

@@ -465,8 +465,8 @@ export function RandomRoomClient() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Typing Indicator */}
-        {typingUsers.size > 0 && (
+        {/* Typing Indicator - only show if partner is typing */}
+        {Array.from(typingUsers).filter(user => user !== username).length > 0 && (
           <div className="px-4 py-3 border-t border-zinc-800/50">
             <div className="flex items-center gap-3 max-w-[85%] md:max-w-[70%]">
               <div className="flex gap-1 items-center">
@@ -476,7 +476,9 @@ export function RandomRoomClient() {
               </div>
               
               <div className="text-xs text-zinc-400 font-medium">
-                <span className="text-pink-400 font-bold">{Array.from(typingUsers)[0]}</span>
+                <span className="text-pink-400 font-bold">
+                  {Array.from(typingUsers).filter(user => user !== username)[0]}
+                </span>
                 {" "}
                 <span className="text-zinc-500">is typing</span>
               </div>
