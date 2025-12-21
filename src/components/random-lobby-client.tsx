@@ -21,6 +21,7 @@ export function RandomLobbyClient() {
   const [dots, setDots] = useState<Array<{ x: number; y: number; delay: number }>>([]);
   const [searchTimeout, setSearchTimeout] = useState(60);
   const [timedOut, setTimedOut] = useState(false);
+  const [strangerFound, setStrangerFound] = useState(false);
   
   // Prevent duplicate redirects - use ref to track across renders
   const isRedirectingRef = useRef(false);
@@ -32,8 +33,12 @@ export function RandomLobbyClient() {
       return;
     }
     isRedirectingRef.current = true;
+    setStrangerFound(true);
     console.log(`Redirecting to room ${roomId}`);
-    router.push(`/random/${roomId}`);
+    // Small delay to show "Found stranger" message
+    setTimeout(() => {
+      router.push(`/random/${roomId}`);
+    }, 1000);
   }, [router]);
 
   // Generate random dots for radar animation
@@ -235,6 +240,17 @@ export function RandomLobbyClient() {
                 </p>
               </div>
             </>
+          ) : strangerFound ? (
+            <>
+              {/* Found stranger state */}
+              <div className="w-24 h-24 rounded-full bg-green-600/20 border-2 border-green-500 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+              </div>
+              
+              <p className="mt-6 text-green-400 text-sm text-center font-medium">
+                Found stranger, connecting...
+              </p>
+            </>
           ) : timedOut ? (
             <>
               {/* Timed out state */}
@@ -268,23 +284,24 @@ export function RandomLobbyClient() {
           {isSearching ? (
             <button
               onClick={handleCancel}
-              className="w-full py-3 rounded-lg border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600 text-sm font-medium transition-all"
+              disabled={strangerFound}
+              className="w-full py-3 border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
           ) : (
             <button
               onClick={handleRetry}
-              disabled={isJoining}
-              className="w-full py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-all disabled:opacity-50"
+              disabled={isJoining || strangerFound}
+              className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isJoining ? "Connecting..." : "Find Stranger"}
+              {isJoining ? "CONNECTING..." : "FIND STRANGER"}
             </button>
           )}
           
           <Link 
             href="/lobby" 
-            className="block w-full py-3 rounded-lg border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-700 text-sm font-medium text-center transition-all"
+            className={`block w-full py-3 border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-700 text-sm font-medium text-center transition-all ${strangerFound ? 'pointer-events-none opacity-50' : ''}`}
           >
             Back to Lobby
           </Link>
