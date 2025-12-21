@@ -254,3 +254,139 @@ After the fixes, logs show:
 2. **Use refs (not state) for flags** that need to persist across React renders immediately
 3. **Have a single source of truth** for navigation - use a wrapper function to prevent duplicate router.push calls
 4. **Disable redundant triggers** - if redirecting, stop polling and ignore further events
+5. **Persist session identifiers** - use sessionStorage to maintain session consistency across page reloads
+
+---
+
+## Fix 3: Session Persistence for Page Reloads (Added Later)
+
+### Issue 3: Page Reload Causes Ghost Matches
+
+**What was happening:** Every page reload generated a NEW sessionId, but the old session's match data remained in Redis. This caused:
+1. User joins queue with sessionId `A`
+2. User reloads page → gets NEW sessionId `B`
+3. Old sessionId `A` gets matched in Redis
+4. Polling/realtime picks up the match for session `A`
+5. User gets redirected to a room they're alone in (the partner was matched to OLD session)
+
+**Evidence from logs:**
+```
+User random-ugn4D3IDXi joined random queue
+[page reload]
+Random match: random-fj26WVXnAx <-> random-ugn4D3IDXi in room 5UAyogVJfAWGcIJ4W63Xs
+# But user now has a different sessionId! They end up alone.
+```
+
+---
+
+### Solution: Persist SessionId in SessionStorage
+
+#### ❌ Before (New Session Each Load):
+
+```typescript
+// random-lobby-client.tsx
+export function RandomLobbyClient() {
+  // NEW sessionId every time component mounts!
+  const [sessionId] = useState(() => `random-${nanoid(10)}`);
+  
+  // If user reloads:
+  // 1. Old sessionId is orphaned in Redis queue
+  // 2. New sessionId joins queue
+  // 3. Old sessionId might get matched → user redirected to wrong room
+}
+```
+
+#### ✅ After (Persistent Session):
+
+```typescript
+// random-lobby-client.tsx
+export function RandomLobbyClient() {
+  const wasDestroyed = searchParams.get("destroyed") === "true";
+
+  // Persist sessionId in sessionStorage to handle page reloads consistently
+  const [sessionId] = useState(() => {
+    if (typeof window === "undefined") return `random-${nanoid(10)}`;
+    
+    // If coming from a destroyed room, clear old session and start fresh
+    if (wasDestroyed) {
+      sessionStorage.removeItem("random-session-id");
+      const newId = `random-${nanoid(10)}`;
+      sessionStorage.setItem("random-session-id", newId);
+      return newId;
+    }
+    
+    // Try to get existing session or create new one
+    const existing = sessionStorage.getItem("random-session-id");
+    if (existing) return existing;
+    
+    const newId = `random-${nanoid(10)}`;
+    sessionStorage.setItem("random-session-id", newId);
+    return newId;
+  });
+
+  // Clear session when redirecting to room
+  const safeRedirect = useCallback((roomId: string) => {
+    if (isRedirectingRef.current) return;
+    isRedirectingRef.current = true;
+    sessionStorage.removeItem("random-session-id"); // ← Clear for next visit
+    router.push(`/random/${roomId}`);
+  }, [router]);
+
+  // Clear session when cancelling
+  const handleCancel = useCallback(() => {
+    sessionStorage.removeItem("random-session-id"); // ← Clear for next visit
+    leaveQueue();
+    router.push("/lobby");
+  }, [leaveQueue, router]);
+}
+```
+
+---
+
+### Session Lifecycle Summary
+
+| Event | Session Action |
+|-------|----------------|
+| First visit to `/random` | Create new sessionId, save to sessionStorage |
+| Page reload while searching | Use SAME sessionId from sessionStorage |
+| Match found, redirecting to room | Clear sessionStorage |
+| User cancels search | Clear sessionStorage |
+| Room destroyed (`?destroyed=true`) | Clear sessionStorage, create new session |
+| User manually closes tab | sessionStorage cleared by browser |
+
+---
+
+### Additional Guards Added
+
+```typescript
+// Prevent duplicate queue joins on mount (React Strict Mode)
+const hasJoinedRef = useRef(false);
+
+useEffect(() => {
+  if (hasJoinedRef.current) return;
+  if (isSearching || wasDestroyed || isJoining) return;
+  
+  hasJoinedRef.current = true;
+  joinQueue();
+}, []);
+
+// Reset states properly when retrying
+const handleRetry = useCallback(() => {
+  if (!isSearching && !isJoining) {
+    setTimedOut(false);
+    setStrangerFound(false);
+    isRedirectingRef.current = false;
+    joinQueue();
+  }
+}, [isSearching, isJoining, joinQueue]);
+```
+
+---
+
+## Complete Files Modified Summary
+
+| File | Changes |
+|------|---------|
+| `src/app/api/[[...slugs]]/route.ts` | Redis lock for matchmaking, atomic ZREM check |
+| `src/components/random-lobby-client.tsx` | `isRedirectingRef`, `safeRedirect`, `hasJoinedRef`, sessionStorage persistence |
+| `src/proxy.ts` | Debug logging and `/random/[roomID]` route handling |

@@ -289,6 +289,9 @@ const random = new Elysia({ prefix: "/random" })
       await redis.hdel("random:sessions", sessionId);
       await redis.hdel("random:matched", sessionId);
       
+      // Clean up the realtime stream for this session
+      await redis.del(sessionId);
+      
       console.log(`User ${sessionId} left random queue`);
       
       return { success: true };
@@ -307,8 +310,9 @@ const random = new Elysia({ prefix: "/random" })
       // Check if matched
       const roomId = await redis.hget("random:matched", sessionId);
       if (roomId) {
-        // Clean up match info
+        // Clean up match info and session stream
         await redis.hdel("random:matched", sessionId);
+        await redis.del(sessionId); // Clean up realtime stream
         return { status: "matched" as const, roomId: roomId as string };
       }
       
