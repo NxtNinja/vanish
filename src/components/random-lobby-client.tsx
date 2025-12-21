@@ -15,7 +15,27 @@ export function RandomLobbyClient() {
   const searchParams = useSearchParams();
   const wasDestroyed = searchParams.get("destroyed") === "true";
 
-  const [sessionId] = useState(() => `random-${nanoid(10)}`);
+  // Persist sessionId in sessionStorage to handle page reloads consistently
+  // Generate a new one if destroyed or if none exists
+  const [sessionId] = useState(() => {
+    if (typeof window === "undefined") return `random-${nanoid(10)}`;
+    
+    // If coming from a destroyed room, clear old session and start fresh
+    if (wasDestroyed) {
+      sessionStorage.removeItem("random-session-id");
+      const newId = `random-${nanoid(10)}`;
+      sessionStorage.setItem("random-session-id", newId);
+      return newId;
+    }
+    
+    // Try to get existing session or create new one
+    const existing = sessionStorage.getItem("random-session-id");
+    if (existing) return existing;
+    
+    const newId = `random-${nanoid(10)}`;
+    sessionStorage.setItem("random-session-id", newId);
+    return newId;
+  });
   const [isSearching, setIsSearching] = useState(false);
   const [showStatusToast, setShowStatusToast] = useState(true);
   const [dots, setDots] = useState<Array<{ x: number; y: number; delay: number }>>([]);
@@ -25,6 +45,8 @@ export function RandomLobbyClient() {
   
   // Prevent duplicate redirects - use ref to track across renders
   const isRedirectingRef = useRef(false);
+  // Prevent duplicate queue joins
+  const hasJoinedRef = useRef(false);
   
   // Safe redirect function that only allows one redirect
   const safeRedirect = useCallback((roomId: string) => {
@@ -35,6 +57,8 @@ export function RandomLobbyClient() {
     isRedirectingRef.current = true;
     setStrangerFound(true);
     console.log(`Redirecting to room ${roomId}`);
+    // Clear session so returning users get a fresh session
+    sessionStorage.removeItem("random-session-id");
     // Small delay to show "Found stranger" message
     setTimeout(() => {
       router.push(`/random/${roomId}`);
@@ -124,11 +148,14 @@ export function RandomLobbyClient() {
     },
   });
 
-  // Auto-start searching on mount
+  // Auto-start searching on mount (only once)
   useEffect(() => {
-    if (!isSearching && !wasDestroyed) {
-      joinQueue();
-    }
+    // Prevent double-join from React Strict Mode or re-renders
+    if (hasJoinedRef.current) return;
+    if (isSearching || wasDestroyed || isJoining) return;
+    
+    hasJoinedRef.current = true;
+    joinQueue();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -165,15 +192,20 @@ export function RandomLobbyClient() {
   }, [isSearching, leaveQueue]);
 
   const handleCancel = useCallback(() => {
+    sessionStorage.removeItem("random-session-id");
     leaveQueue();
     router.push("/lobby");
   }, [leaveQueue, router]);
 
   const handleRetry = useCallback(() => {
-    if (!isSearching) {
+    if (!isSearching && !isJoining) {
+      // Reset all states for a fresh search
+      setTimedOut(false);
+      setStrangerFound(false);
+      isRedirectingRef.current = false;
       joinQueue();
     }
-  }, [isSearching, joinQueue]);
+  }, [isSearching, isJoining, joinQueue]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-black">
