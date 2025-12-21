@@ -5,6 +5,9 @@ import { nanoid } from "nanoid";
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
+  // Debug: Log all incoming requests to see if proxy is running
+  console.log(`[PROXY] Request: ${pathname}`);
+
   // Ignore static assets and internal Next.js requests
   if (
     pathname.includes(".") ||
@@ -14,17 +17,28 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Match both /room/[roomID] and /random/[roomID]
   const roomMatch = pathname.match(/^\/room\/([^/]+)$/);
-  if (!roomMatch) return NextResponse.next();
+  const randomRoomMatch = pathname.match(/^\/random\/([^/]+)$/);
+  
+  if (!roomMatch && !randomRoomMatch) return NextResponse.next();
 
-  const roomId = roomMatch[1];
+  const roomId = roomMatch ? roomMatch[1] : randomRoomMatch![1];
+  const isRandomRoom = !!randomRoomMatch;
+  
+  console.log(`[PROXY] Matched ${isRandomRoom ? 'random' : 'regular'} room: ${roomId}`);
 
-  const meta = await redis.hgetall<{ connected: string[]; createdAt: number; maxParticipants?: number }>(
-    `meta:${roomId}`
-  );
+  const meta = await redis.hgetall<{ connected: string[]; createdAt: number; maxParticipants?: number }>(`meta:${roomId}`);
+
+  console.log(`[PROXY] Room ${roomId} meta:`, meta ? 'exists' : 'NOT FOUND');
 
   if (!meta) {
-    return NextResponse.redirect(new URL("/lobby?error=room-not-found", req.url));
+    // Redirect to appropriate lobby based on room type
+    console.log(`[PROXY] Room ${roomId} not found, redirecting to ${isRandomRoom ? '/random' : '/lobby'}`);
+    const redirectUrl = isRandomRoom 
+      ? "/random?destroyed=true"
+      : "/lobby?error=room-not-found";
+    return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
   // Default to 2 for backwards compatibility with existing rooms
@@ -68,7 +82,10 @@ export async function proxy(req: NextRequest) {
   // Enforce dynamic participant limit
   if (tokenCount >= maxParticipants) {
     console.warn(`Room ${roomId} is full. Token count: ${tokenCount}, max: ${maxParticipants}`);
-    return NextResponse.redirect(new URL("/lobby?error=room-full", req.url));
+    const redirectUrl = isRandomRoom
+      ? "/random?destroyed=true"
+      : "/lobby?error=room-full";
+    return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
   const response = NextResponse.next();
@@ -85,9 +102,7 @@ export async function proxy(req: NextRequest) {
   await redis.sadd(tokenKey, token);
   
   // Add token to connected array in meta hash
-  const currentMeta = await redis.hgetall<{ connected: string[]; createdAt: number }>(
-    `meta:${roomId}`
-  );
+  const currentMeta = await redis.hgetall<{ connected: string[]; createdAt: number }>(`meta:${roomId}`);
   if (currentMeta) {
     const updatedConnected = [...(currentMeta.connected || []), token];
     await redis.hset(`meta:${roomId}`, { connected: updatedConnected });
@@ -99,11 +114,12 @@ export async function proxy(req: NextRequest) {
     await redis.expire(tokenKey, ttl);
   }
 
-  console.log(`New token generated for room ${roomId}. Total: ${tokenCount + 1}`);
+  console.log(`New token generated for ${isRandomRoom ? 'random ' : ''}room ${roomId}. Total: ${tokenCount + 1}`);
 
   return response;
 }
 
 export const config = {
-  matcher: ["/room/:path*", "/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/room/:path*", "/random/:path*", "/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
+

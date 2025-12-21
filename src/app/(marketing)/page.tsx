@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Shield, Zap, Trash2, ArrowRight, Lock, EyeOff, Timer, Users } from "lucide-react";
+import { Shield, Zap, Trash2, ArrowRight, Lock, EyeOff, Timer, Users, Radio } from "lucide-react";
 import { StatsSection } from "@/components/stats-section";
 
 export const metadata: Metadata = {
@@ -35,12 +35,20 @@ const LandingPage = () => {
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-6 pt-6 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500">
+            <div className="flex flex-col sm:flex-row gap-4 pt-6 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500">
               <Link
                 href="/lobby"
                 className="group relative px-10 py-5 bg-green-500 text-black font-black text-sm tracking-widest rounded-none hover:bg-green-400 transition-all flex items-center gap-3 shadow-[0_0_40px_rgba(34,197,94,0.2)]"
               >
                 INITIALIZE SESSION
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="/random"
+                className="group relative px-10 py-5 bg-purple-600 text-white font-black text-sm tracking-widest rounded-none hover:bg-purple-500 transition-all flex items-center gap-3 shadow-[0_0_40px_rgba(168,85,247,0.2)]"
+              >
+                <Radio size={18} className="animate-pulse" />
+                RANDOM CHAT
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
@@ -103,6 +111,25 @@ const LandingPage = () => {
             <div className="flex gap-2 font-mono text-xs text-zinc-600">
               <span className="px-3 py-1 bg-zinc-800">3-5 MEMBERS</span>
               <span className="px-3 py-1 bg-zinc-800">ENCRYPTED</span>
+            </div>
+          </div>
+
+          {/* Random Chat Feature */}
+          <div className="mt-4 p-8 bg-purple-950/20 border border-purple-500/30 flex flex-col md:flex-row gap-8 items-center">
+            <div className="w-16 h-16 flex items-center justify-center bg-purple-500/10 border border-purple-500/30 shrink-0 relative">
+              <Radio className="text-purple-500" size={28} />
+              <div className="absolute inset-0 bg-purple-500/20 rounded-full animate-ping" />
+            </div>
+            <div className="space-y-2 flex-1">
+              <h3 className="text-xl font-bold text-white tracking-tight">Random Stranger Chat</h3>
+              <p className="text-zinc-500 text-sm leading-relaxed">
+                Get matched with a random stranger instantly. Completely anonymous, 5-minute sessions only. 
+                No identity shared, no traces left. Hit the vanish button anytime to disappear and find a new stranger.
+              </p>
+            </div>
+            <div className="flex gap-2 font-mono text-xs text-zinc-600">
+              <span className="px-3 py-1 bg-purple-900/50">5 MINUTES</span>
+              <span className="px-3 py-1 bg-purple-900/50">ANONYMOUS</span>
             </div>
           </div>
         </section>

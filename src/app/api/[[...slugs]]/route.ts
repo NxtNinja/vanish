@@ -168,7 +168,166 @@ const messages = new Elysia({ prefix: "/messages" })
       }),
     }
   );
-const app = new Elysia({ prefix: "/api" }).use(rooms).use(messages);
+
+// Random chat matchmaking - 5 minute fixed TTL
+const RANDOM_CHAT_TTL_SECONDS = 300; // 5 minutes
+
+const random = new Elysia({ prefix: "/random" })
+  .post(
+    "/queue/join",
+    async ({ body }) => {
+      const { sessionId, username } = body;
+      
+      // Use a lock to prevent race conditions in matchmaking
+      const lockKey = "random:matchmaking:lock";
+      const lockValue = sessionId;
+      const lockTTL = 5; // 5 seconds max lock time
+      
+      // Try to acquire lock using SETNX
+      const lockAcquired = await redis.setnx(lockKey, lockValue);
+      if (!lockAcquired) {
+        // Someone else is matchmaking, add ourselves to queue and wait
+        await redis.zadd("random:queue", { score: Date.now(), member: sessionId });
+        await redis.hset("random:sessions", { [sessionId]: JSON.stringify({ username, joinedAt: Date.now() }) });
+        await redis.expire("random:queue", 3600);
+        await redis.expire("random:sessions", 3600);
+        console.log(`User ${sessionId} joined random queue (lock held by another)`);
+        return { status: "queued" as const };
+      }
+      
+      // We have the lock, set expiry to prevent deadlock
+      await redis.expire(lockKey, lockTTL);
+      
+      try {
+        // Check if there's already someone waiting in the queue (not us)
+        const waitingUsers = await redis.zrange("random:queue", 0, 0);
+        
+        if (waitingUsers.length > 0) {
+          const matchedSessionId = waitingUsers[0] as string;
+          
+          // Don't match with yourself
+          if (matchedSessionId === sessionId) {
+            // Already in queue, just wait
+            return { status: "queued" as const };
+          }
+          
+          // Atomically remove matched user from queue - if this fails, someone else got them
+          const removed = await redis.zrem("random:queue", matchedSessionId);
+          if (removed === 0) {
+            // Someone else already matched with this user, add ourselves and wait
+            await redis.zadd("random:queue", { score: Date.now(), member: sessionId });
+            await redis.hset("random:sessions", { [sessionId]: JSON.stringify({ username, joinedAt: Date.now() }) });
+            await redis.expire("random:queue", 3600);
+            await redis.expire("random:sessions", 3600);
+            console.log(`User ${sessionId} joined queue (match target already taken)`);
+            return { status: "queued" as const };
+          }
+          
+          await redis.hdel("random:sessions", matchedSessionId);
+          
+          // Create a random room with fixed 5-min TTL
+          const roomId = nanoid();
+          
+          await redis.hset(`meta:${roomId}`, {
+            connected: [],
+            createdAt: Date.now(),
+            maxParticipants: 2,
+            isRandomChat: true,
+          });
+          
+          await redis.expire(`meta:${roomId}`, RANDOM_CHAT_TTL_SECONDS);
+          
+          // Track room creation for stats
+          await stats.roomCreated();
+          
+          // Store match info for both users (short TTL for retrieval)
+          await redis.hset("random:matched", { 
+            [sessionId]: roomId,
+            [matchedSessionId]: roomId,
+          });
+          await redis.expire("random:matched", 60);
+          
+          console.log(`Random match: ${sessionId} <-> ${matchedSessionId} in room ${roomId}`);
+          
+          // Notify the waiting user via realtime
+          await realtime.channel(matchedSessionId).emit("random.matched", {
+            roomId,
+            sessionId: matchedSessionId,
+          });
+          
+          return { status: "matched" as const, roomId };
+        }
+        
+        // No one waiting, add to queue
+        await redis.zadd("random:queue", { score: Date.now(), member: sessionId });
+        await redis.hset("random:sessions", { [sessionId]: JSON.stringify({ username, joinedAt: Date.now() }) });
+        await redis.expire("random:queue", 3600);
+        await redis.expire("random:sessions", 3600);
+        
+        console.log(`User ${sessionId} joined random queue`);
+        
+        return { status: "queued" as const };
+      } finally {
+        // Always release the lock
+        await redis.del(lockKey);
+      }
+    },
+    {
+      body: z.object({
+        sessionId: z.string(),
+        username: z.string(),
+      }),
+    }
+  )
+  .post(
+    "/queue/leave",
+    async ({ body }) => {
+      const { sessionId } = body;
+      
+      // Remove from queue
+      await redis.zrem("random:queue", sessionId);
+      await redis.hdel("random:sessions", sessionId);
+      await redis.hdel("random:matched", sessionId);
+      
+      console.log(`User ${sessionId} left random queue`);
+      
+      return { success: true };
+    },
+    {
+      body: z.object({
+        sessionId: z.string(),
+      }),
+    }
+  )
+  .get(
+    "/queue/status",
+    async ({ query }) => {
+      const { sessionId } = query;
+      
+      // Check if matched
+      const roomId = await redis.hget("random:matched", sessionId);
+      if (roomId) {
+        // Clean up match info
+        await redis.hdel("random:matched", sessionId);
+        return { status: "matched" as const, roomId: roomId as string };
+      }
+      
+      // Check if in queue
+      const score = await redis.zscore("random:queue", sessionId);
+      if (score !== null) {
+        return { status: "queued" as const };
+      }
+      
+      return { status: "not_in_queue" as const };
+    },
+    {
+      query: z.object({
+        sessionId: z.string(),
+      }),
+    }
+  );
+
+const app = new Elysia({ prefix: "/api" }).use(rooms).use(messages).use(random);
 
 // Rate limiting wrapper
 async function withRateLimit(request: Request, handler: (request: Request) => Promise<Response>) {

@@ -22,6 +22,12 @@ const schema = {
       isTyping: z.boolean(),
     }),
   },
+  random: {
+    matched: z.object({
+      roomId: z.string(),
+      sessionId: z.string(),
+    }),
+  },
 };
 
 export const realtime = new Realtime({ schema, redis });
