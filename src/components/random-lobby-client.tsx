@@ -47,6 +47,14 @@ export function RandomLobbyClient() {
   const isRedirectingRef = useRef(false);
   // Prevent duplicate queue joins
   const hasJoinedRef = useRef(false);
+
+  // Reset refs when returning from destroyed room
+  useEffect(() => {
+    if (wasDestroyed) {
+      hasJoinedRef.current = false;
+      isRedirectingRef.current = false;
+    }
+  }, [wasDestroyed]);
   
   // Safe redirect function that only allows one redirect
   const safeRedirect = useCallback((roomId: string) => {
@@ -203,6 +211,7 @@ export function RandomLobbyClient() {
       setTimedOut(false);
       setStrangerFound(false);
       isRedirectingRef.current = false;
+      hasJoinedRef.current = true; // Mark as joined to prevent double-join
       joinQueue();
     }
   }, [isSearching, isJoining, joinQueue]);

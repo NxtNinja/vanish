@@ -61,10 +61,9 @@ const rooms = new Elysia({ prefix: "/room" })
         .emit("chat.destroy", { isDestroyed: true });
       console.log("Destroy event emitted for:", auth.roomId);
 
-      // Only delay for group chats (3+) to ensure event propagates
-      if (isGroupChat) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
+      // Small delay for ALL room types to ensure realtime event propagates
+      // Upstash Realtime can have ~100-500ms latency in production
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Clean up random:matched entries that point to this room
       const matchedEntries = await redis.hgetall<Record<string, string>>("random:matched");

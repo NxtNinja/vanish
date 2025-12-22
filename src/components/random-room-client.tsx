@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Copy, CopyCheck, Loader2, SendHorizonal, Timer, Zap } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { message } from "@/lib/realtime";
 
 type DisplayMessage = message & {
@@ -33,10 +33,21 @@ export function RandomRoomClient() {
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isDestroying, setIsDestroying] = useState(false);
+  const hasRedirectedRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [partnerUsername, setPartnerUsername] = useState<string | null>(null);
+
+  // Safe redirect to prevent duplicate lobby redirects
+  const safeRedirectToLobby = useCallback(() => {
+    if (hasRedirectedRef.current) return;
+    hasRedirectedRef.current = true;
+    setIsDestroying(true);
+    setTimeout(() => {
+      router.push("/random?destroyed=true");
+    }, 500);
+  }, [router]);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -90,9 +101,9 @@ export function RandomRoomClient() {
   // Only redirect if TTL query has definitively failed after retries
   useEffect(() => {
     if (ttlError && !isDestroying) {
-      router.push("/random?destroyed=true");
+      safeRedirectToLobby();
     }
-  }, [ttlError, isDestroying, router]);
+  }, [ttlError, isDestroying, safeRedirectToLobby]);
 
   // Initialize timer with server TTL (capped at 5 mins) or use fixed timer
   useEffect(() => {
@@ -227,7 +238,7 @@ export function RandomRoomClient() {
     },
     onSuccess: () => {
       // Redirect to random lobby (not regular lobby)
-      router.push("/random?destroyed=true");
+      safeRedirectToLobby();
     },
     onError: (err) => {
       setIsDestroying(false);
@@ -287,10 +298,7 @@ export function RandomRoomClient() {
       }
 
       if (event === "chat.destroy") {
-        setIsDestroying(true);
-        setTimeout(() => {
-          router.push("/random?destroyed=true");
-        }, 500);
+        safeRedirectToLobby();
       }
 
       if (event === "chat.typing") {
